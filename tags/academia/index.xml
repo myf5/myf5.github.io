@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>academia on Jing Lin‘s profile</title><link>https://linjing.io/tags/academia/</link><description>Recent content in academia on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>COPYRIGHT © 2020 linjing.io</copyright><lastBuildDate>Wed, 20 Apr 2016 00:00:00 +0000</lastBuildDate><atom:link href="https://linjing.io/tags/academia/index.xml" rel="self" type="application/rss+xml"/><item><title>Just a sample</title><link>https://linjing.io/post/snail/</link><pubDate>Wed, 20 Apr 2016 00:00:00 +0000</pubDate><guid>https://linjing.io/post/snail/</guid><description>&lt;p>&lt;strong>Create a free website with academia using Markdown, Jupyter, or RStudio. Choose a beautiful color theme and build anything with the Page Builder - over 40 &lt;em>widgets&lt;/em>, &lt;em>themes&lt;/em>, and &lt;em>language packs&lt;/em> included!&lt;/strong>&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>academia on Jing Lin‘s profile</title><link>http://linjing.io/tags/academia/</link><description>Recent content in academia on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>COPYRIGHT © 2020 linjing.io Host on github, CI/CD by github actions.</copyright><lastBuildDate>Wed, 20 Apr 2016 00:00:00 +0000</lastBuildDate><atom:link href="http://linjing.io/tags/academia/index.xml" rel="self" type="application/rss+xml"/><item><title>Just a sample</title><link>http://linjing.io/post/snail/</link><pubDate>Wed, 20 Apr 2016 00:00:00 +0000</pubDate><guid>http://linjing.io/post/snail/</guid><description>&lt;p>&lt;strong>Create a free website with academia using Markdown, Jupyter, or RStudio. Choose a beautiful color theme and build anything with the Page Builder - over 40 &lt;em>widgets&lt;/em>, &lt;em>themes&lt;/em>, and &lt;em>language packs&lt;/em> included!&lt;/strong>&lt;/p>
 &lt;p>&lt;a href="https://academia-demo.netlify.com/">Check out the latest &lt;strong>demo&lt;/strong>&lt;/a> of what you&amp;rsquo;ll get in less than 10 minutes, or &lt;a href="https://sourcethemes.com/academic/#expo">view the &lt;strong>showcase&lt;/strong>&lt;/a> of personal, project, and business sites.&lt;/p>
 &lt;ul>
 &lt;li>&lt;a href="#install">&lt;strong>Setup academia&lt;/strong>&lt;/a>&lt;/li>
@@ -39,29 +39,29 @@
 &lt;p>academia comes with &lt;strong>day (light) and night (dark) mode&lt;/strong> built-in. Click the sun/moon icon in the top right of the &lt;a href="https://academia-demo.netlify.com/">Demo&lt;/a> to see it in action!&lt;/p>
 &lt;p>Choose a stunning color and font theme for your site. Themes are fully customizable and include:&lt;/p>
 &lt;div class="gallery">
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-1950s.png" data-caption="1950s">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-1950s_huaf5482f8cea0c5a703a328640e3b7509_21614_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-1950s.png" data-caption="1950s">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-1950s_huaf5482f8cea0c5a703a328640e3b7509_21614_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-apogee.png" data-caption="Apogee">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-apogee_hu4b45d99db97150df01464c393bfd17d4_24119_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-apogee.png" data-caption="Apogee">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-apogee_hu4b45d99db97150df01464c393bfd17d4_24119_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-coffee-playfair.png" data-caption="Coffee theme with Playfair font">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-coffee-playfair_hu446a8f670cc5622adcc77b97ba95f6c5_22462_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-coffee-playfair.png" data-caption="Coffee theme with Playfair font">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-coffee-playfair_hu446a8f670cc5622adcc77b97ba95f6c5_22462_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-dark.png" data-caption="Dark">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-dark_hu1e8601ecc47f58eada7743fdcd709d3d_21456_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-dark.png" data-caption="Dark">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-dark_hu1e8601ecc47f58eada7743fdcd709d3d_21456_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-default.png" data-caption="Default">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-default_huba6228b7bdf30e2f03f12ea91b2cba0d_21751_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-default.png" data-caption="Default">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-default_huba6228b7bdf30e2f03f12ea91b2cba0d_21751_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-forest.png" data-caption="Forest">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-forest_hu4f093a1c683134431456584193ea41ee_21797_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-forest.png" data-caption="Forest">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-forest_hu4f093a1c683134431456584193ea41ee_21797_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-ocean.png" data-caption="Ocean">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-ocean_hu14831ccafc2219f30a7a096fa7617e01_21760_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-ocean.png" data-caption="Ocean">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-ocean_hu14831ccafc2219f30a7a096fa7617e01_21760_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
-&lt;a data-fancybox="gallery-gallery" href="https://linjing.io/post/snail/gallery/theme-strawberry.png" data-caption="Strawberry">
-&lt;img src="https://linjing.io/post/snail/gallery/theme-strawberry_hu36b0b347fcca08bd39e2df22dcedbdfb_39532_0x190_resize_lanczos_2.png" alt="">
+&lt;a data-fancybox="gallery-gallery" href="http://linjing.io/post/snail/gallery/theme-strawberry.png" data-caption="Strawberry">
+&lt;img src="http://linjing.io/post/snail/gallery/theme-strawberry_hu36b0b347fcca08bd39e2df22dcedbdfb_39532_0x190_resize_lanczos_2.png" alt="">
 &lt;/a>
 &lt;/div>
 &lt;h2 id="ecosystem">Ecosystem&lt;/h2>
