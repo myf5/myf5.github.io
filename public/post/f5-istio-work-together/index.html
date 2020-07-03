@@ -1,0 +1,239 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Source Themes Academia 4.3.1"><meta name=generator content="Hugo 0.73.0"><meta name=author content="Jing Lin (林静)"><meta name=description content="F5 make istio works better"><link rel=alternate hreflang=en-us href=https://linjing.io/post/f5-istio-work-together/><meta name=theme-color content="#3f51b5"><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/academicons/1.8.6/css/academicons.min.css integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin=anonymous><link rel=stylesheet href=https://use.fontawesome.com/releases/v5.6.0/css/all.css integrity=sha384-aOkxzJ5uQz7WBObEZcHvV5JvRW3TUc2rNPA7pe3AwnsUohiw1Vj2Rgx2KSOkF5+h crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css integrity="sha256-ygkqlh3CYSUri3LhQxzdcm0n1EQvH2Y+U5S2idbLtxs=" crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css crossorigin=anonymous title=hl-light><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/dracula.min.css crossorigin=anonymous title=hl-dark disabled><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Lato:400,700|Open+Sans|Roboto+Mono&display=swap"><link rel=stylesheet href=/css/academia.min.bcef5eaccde0f18047d8dcec72cc428c.css><link rel=manifest href=/site.webmanifest><link rel=icon type=image/png href=/img/icon.png><link rel=apple-touch-icon type=image/png href=/img/icon-192.png><link rel=canonical href=https://linjing.io/post/f5-istio-work-together/><meta property="twitter:card" content="summary_large_image"><meta property="og:site_name" content="Jing Lin‘s profile"><meta property="og:url" content="https://linjing.io/post/f5-istio-work-together/"><meta property="og:title" content="F5 BIG-IP links Istio to enhance ingress service capabilities | Jing Lin‘s profile"><meta property="og:description" content="F5 make istio works better"><meta property="og:image" content="https://linjing.io/post/f5-istio-work-together/featured.jpg"><meta property="twitter:image" content="https://linjing.io/post/f5-istio-work-together/featured.jpg"><meta property="og:locale" content="en-us"><meta property="article:published_time" content="2020-06-22T00:00:00+00:00"><meta property="article:modified_time" content="2020-06-22T00:00:00+00:00"><title>F5 BIG-IP links Istio to enhance ingress service capabilities | Jing Lin‘s profile</title></head><body id=top data-spy=scroll data-target=#TableOfContents data-offset=71><aside class=search-results id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class=col-6><h1>Search</h1></div><div class="col-6 col-search-close"><a class=js-search href=#><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box><input name=q id=search-query placeholder=Search... autocapitalize=off autocomplete=off autocorrect=off role=textbox spellcheck=false type=search></div></section><section class=section-search-results><div id=search-hits></div></section></div></aside><nav class="navbar navbar-light fixed-top navbar-expand-lg py-0" id=navbar-main><div class=container><a class=navbar-brand href=/>Jing Lin‘s profile</a>
+<button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar aria-controls=navbar aria-expanded=false aria-label="Toggle navigation"><span><i class="fas fa-bars"></i></span></button><div class="collapse navbar-collapse" id=navbar><ul class="navbar-nav ml-auto"><li class=nav-item><a class=nav-link href=/#about><span>Home</span></a></li><li class=nav-item><a class=nav-link href=/#posts><span>Posts</span></a></li><li class=nav-item><a class=nav-link href=/#skills><span>Skills</span></a></li><li class=nav-item><a class=nav-link href=/#talks><span>Talks</span></a></li><li class=nav-item><a class=nav-link href=/#accomplishments><span>Accomplishments</span></a></li><li class=nav-item><a class=nav-link href=/#publications><span>Publications</span></a></li><li class=nav-item><a class=nav-link href=/#experience><span>Experience</span></a></li><li class=nav-item><a class="nav-link active" href=/><span>Courses</span></a></li><li class=nav-item><a class=nav-link href=/#slider><span>Customers</span></a></li><li class=nav-item><a class=nav-link href=/#contact><span>Contact</span></a></li><li class=nav-item><a class="nav-link js-search" href=#><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class="nav-link js-dark-toggle" href=#><i class="fas fa-moon" aria-hidden=true></i></a></li></ul></div></div></nav><article class="article py-5" itemscope itemtype=http://schema.org/Article><div class="container split-header"><div class="row justify-content-center"><div class=col-lg-8><img class="img-fluid w-100" src=/post/f5-istio-work-together/featured_hu0b141aa457d014cc867e0e2232fe39aa_53430_680x500_fill_q90_lanczos_smart1.jpg itemprop=image alt>
+<span class=article-header-caption>My tech blog <a href=https://cnadn.net>https://cnadn.net</a></span></div><div class=col-lg-8><h1 itemprop=name>F5 BIG-IP links Istio to enhance ingress service capabilities</h1><p class=page-subtitle>Tranlated by google</p><meta content="2020-06-22 00:00:00 +0000 UTC" itemprop=datePublished><meta content="2020-06-22 00:00:00 +0000 UTC" itemprop=dateModified><div class=article-metadata><div><span itemprop="author name" itemtype=http://schema.org/Person><a href=/authors/admin/>Jing Lin (林静)</a></span></div><span class=article-date><time>Jun 22, 2020</time></span>
+<span class=middot-divider></span><span class=article-reading-time>3 min read</span><div class=share-box aria-hidden=true><ul class=share><li><a href="https://twitter.com/intent/tweet?url=https://linjing.io/post/f5-istio-work-together/&text=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities" target=_blank rel=noopener class=share-btn-twitter><i class="fab fa-twitter"></i></a></li><li><a href="https://www.facebook.com/sharer.php?u=https://linjing.io/post/f5-istio-work-together/&t=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities" target=_blank rel=noopener class=share-btn-facebook><i class="fab fa-facebook-f"></i></a></li><li><a href="mailto:?subject=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities&body=https://linjing.io/post/f5-istio-work-together/" target=_blank rel=noopener class=share-btn-email><i class="fas fa-envelope"></i></a></li><li><a href="https://www.linkedin.com/shareArticle?url=https://linjing.io/post/f5-istio-work-together/&title=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities" target=_blank rel=noopener class=share-btn-linkedin><i class="fab fa-linkedin-in"></i></a></li><li><a href="https://web.whatsapp.com/send?text=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities%20https://linjing.io/post/f5-istio-work-together/" target=_blank rel=noopener class=share-btn-whatsapp><i class="fab fa-whatsapp"></i></a></li><li><a href="https://service.weibo.com/share/share.php?url=https://linjing.io/post/f5-istio-work-together/&title=F5%20BIG-IP%20links%20Istio%20to%20enhance%20ingress%20service%20capabilities" target=_blank rel=noopener class=share-btn-weibo><i class="fab fa-weibo"></i></a></li></ul></div></div></div></div></div></div><div class=article-container><div class=article-style itemprop=articleBody><p>In the Istio system, in order to ensure the unity of policy coordination and experience, users will consider using Istio&rsquo;s own Ingressgateway as the entrance to north-south traffic. Ingressgateway is generally deployed by deployment of multiple pods, scattered on multiple nodes of the cluster, depending on Due to the specific exposure type, especially in on-prem deployment, it is still necessary to deploy relevant load balancers outside the k8s cluster to load balance these ingressgateways, on the one hand, it can avoid access difficulties and operation and maintenance difficulties caused by multiple entrances. On the other hand, the high-performance and high-reliability F5 BIGIP can provide more function control and security value-added services for k8s cluster entrance traffic, which is similar to the Ingress controller.</p><p>Unlike exposing ordinary service svc to external BIG-IP, ingressgateway itself is a collection point of various service ports. It may itself listen to many ports, so it is not easy to treat ingressgateway as a single ordinary svc. This article mainly explains how to combine Istio ingressgateway with BIG-IP to enhance the entrance business capability.</p><p>The possible methods on the network structure are:</p><p>External load balancer &mdash; access to &ndash;> ingressgateway&rsquo;s nodeport port</p><p>External load balancer &mdash; access to &ndash;> ingressgateway direct endpoints port (direct to pod)</p><p>From the point of view of performance, it is naturally the second direct pod method mentioned above that has better performance, depending on the network model of the k8s cluster. If the external and pod can be directly routed or the two-layer direct connection is naturally the easiest, if it cannot be directly routed, it needs to be based on vxlan and other tunnels to achieve pod direct. F5 BIGIP supports Layer 2 direct, dynamic routing or vxlan tunnel mode. Refer to this article for detailed network deployment structure , or search for related articles in this blog. In the following, we assume that F5 BIGIP has implemented vxlan with k8s cluster, which can reach the pod directly. The final data path is as follows:</p><p><strong>client&ndash;>F5BIGIP&ndash;>Istio ingressgateway pod&ndash;>endpoints</strong></p><p>The underlying implementation of Istio Ingressgateway is envoy. When we publish a service to Ingressgateway through Gateway+VirtualService resource, Ingressgateway will listen to the port specified in Gateway. Therefore, once a new service is released, there may be a new listening port. However, when we deploy the ingressgateway pod, we will not configure all the external mappings in advance. That is to say, the port that the container in the pod listens to is not configured in the deployment of the pod. Don’t worry, it can be directly accessed at this time. This listening port on the pod, although the deployment port is not specified in advance.</p><p>So how to load balance for Ingressgateway through BIGIP and dynamically discover these new monitoring services? The answer is naturally the solution described in this article. F5 BIGIP provides a controller that runs inside k8s and automatically pushes these changes to BIGIP. on. Since the same k8s svc contains one more port, you need to pay attention to the servicePort parameter when publishing this k8s svc to F5. The specific publishing process refers to the following steps:</p><ol><li><p>Deploy Istio Gateway+VirtualService resources</p></li><li><p>Edit the k8s svc corresponding to the existing Ingressgateway and add new port and target port configurations</p></li><li><p>Configure a new F5 configmap resource and specify the corresponding servicePort to publish the new service</p></li></ol><h2 id=demo>DEMO:</h2><ol><li>First check the existing Ingressgateway pod ports are as follows, port 32400 is not exposed in the container port</li></ol><pre><code>        name: istio-proxy
+        ports:
+        - containerPort: 15020
+          protocol: TCP
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 8443
+          protocol: TCP
+        - containerPort: 31400
+          protocol: TCP
+        - containerPort: 15443
+          protocol: TCP
+        - containerPort: 15011
+          protocol: TCP
+        - containerPort: 15012
+          protocol: TCP
+        - containerPort: 8060
+          protocol: TCP
+        - containerPort: 853
+          protocol: TCP
+        - containerPort: 15090
+          name: http-envoy-prom
+          protocol: TCP
+</code></pre><ol start=2><li>Deploy Istio Gateway and VirtualService</li></ol><pre><code>apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: tcp-echo-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 32400
+      name: tcp
+      protocol: TCP
+    hosts:
+    - &quot;*&quot;
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: tcp-echo-destination
+spec:
+  host: tcp-echo
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: tcp-echo
+spec:
+  hosts:
+  - &quot;*&quot;
+  gateways:
+  - tcp-echo-gateway
+  tcp:
+  - match:
+    - port: 32400   ###########32400端口监听
+    route:
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v1
+</code></pre><ol start=3><li>After the deployment is complete, check envoy to confirm that the monitoring has been issued</li></ol><pre><code> {
+        &quot;name&quot;: &quot;0.0.0.0_32400&quot;,
+        &quot;address&quot;: {
+            &quot;socketAddress&quot;: {
+                &quot;address&quot;: &quot;0.0.0.0&quot;,
+                &quot;portValue&quot;: 32400
+            }
+        },
+        &quot;filterChains&quot;: &amp;#91;
+            {
+                &quot;filters&quot;: &amp;#91;
+      。。。。。。。。。。省略。。。。。。。。。。
+                    {
+                        &quot;name&quot;: &quot;envoy.tcp_proxy&quot;,
+                        &quot;typedConfig&quot;: {
+                            &quot;@type&quot;: 
+。。。。。
+
+                            &quot;cluster&quot;: &quot;outbound|9000|v1|tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local&quot;,
+
+。。。。。
+                        }
+                    }
+                ]
+            }
+        ],
+        &quot;trafficDirection&quot;: &quot;OUTBOUND&quot;
+    },
+</code></pre><ol start=4><li>Modify the existing Ingressgateway svc, increase the external exposure of 32400 port</li></ol><pre><code>kubectl edit svc istio-ingressgateway -n istio-system -o yaml
+
+修改前：
+  ports:
+  - name: status-port
+    nodePort: 31702
+    port: 15020
+    protocol: TCP
+    targetPort: 15020
+  - name: http2
+    nodePort: 31547
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    nodePort: 31956
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  - name: tcp
+    nodePort: 30775
+    port: 31400
+    protocol: TCP
+    targetPort: 31400
+  - name: tls
+    nodePort: 30536
+    port: 15443
+    protocol: TCP
+    targetPort: 15443
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  sessionAffinity: None
+  type: LoadBalancer
+
+修改后：
+
+  ports:
+  - name: status-port
+    nodePort: 31702
+    port: 15020
+    protocol: TCP
+    targetPort: 15020
+  - name: http2
+    nodePort: 31547
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    nodePort: 31956
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  - name: tcp
+    nodePort: 30775
+    port: 31400
+    protocol: TCP
+    targetPort: 31400
+  - name: tcp2
+    nodePort: 30776
+    port: 32400
+    protocol: TCP
+    targetPort: 32400  #########新增端口
+  - name: tls
+    nodePort: 30536
+    port: 15443
+    protocol: TCP
+    targetPort: 15443
+
+
+root@k8s-master-v1-16 ~]# kubectl  get svc -n istio-system
+NAME                        TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                                                      AGE
+grafana                     ClusterIP      10.96.165.101    &amp;lt;none&gt;        3000/TCP                                                                                     2d
+istio-egressgateway         ClusterIP      10.110.88.185    &amp;lt;none&gt;        80/TCP,443/TCP,15443/TCP                                                                     2d
+istio-ingressgateway        LoadBalancer   10.96.122.225    &amp;lt;pending&gt;     15020:31702/TCP,80:31547/TCP,443:31956/TCP,31400:30775/TCP,32400:30776/TCP,15443:30536/TCP   2d
+istiod                      ClusterIP      10.102.252.88    &amp;lt;none&gt;        15010/TCP,15012/TCP,443/TCP,15014/TCP,53/UDP,853/TCP                                         2d
+jaeger-agent                ClusterIP      None             &amp;lt;none&gt;        5775/UDP,6831/UDP,6832/UDP                                                                   2d
+jaeger-collector            ClusterIP      10.105.130.171   &amp;lt;none&gt;        14267/TCP,14268/TCP,14250/TCP                                                                2d
+jaeger-collector-headless   ClusterIP      None             &amp;lt;none&gt;        14250/TCP                                                                                    2d
+jaeger-query                ClusterIP      10.99.139.251    &amp;lt;none&gt;        16686/TCP                                                                                    2d
+kiali                       ClusterIP      10.101.189.237   &amp;lt;none&gt;        20001/TCP                                                                                    2d
+prometheus                  ClusterIP      10.109.157.108   &amp;lt;none&gt;        9090/TCP                                                                                     2d
+tracing                     ClusterIP      10.101.62.56     &amp;lt;none&gt;        80/TCP                                                                                       2d
+zipkin                      ClusterIP      10.98.181.246    &amp;lt;none&gt;        9411/TCP
+</code></pre><ol start=5><li>Publish the 32400 servicePort to F5, at this time you need to add an F5 configmap, pay attention to the Chinese comments</li></ol><pre><code>kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: istio-ingressgateway.32400.vs
+  namespace: istio-system
+  labels:
+    f5type: virtual-server
+data:
+  # See the f5-schema table for schema-controller compatibility
+  # https://clouddocs.f5.com/containers/latest/releases_and_versioning.html#f5-schema
+  schema: &quot;f5schemadb://bigip-virtual-server_v0.1.7.json&quot;
+  data: |
+    {
+      &quot;virtualServer&quot;: {
+        &quot;backend&quot;: {
+          &quot;serviceName&quot;: &quot;istio-ingressgateway&quot;,
+          &quot;servicePort&quot;: 32400
+####It is important here. The port of the corresponding k8s svc is filled in here. The F5 CIS controller will automatically find the targetPort (CIS cluster mode) or nodeport (CIS nodeport mode) corresponding to the servicePort
+        },
+        &quot;frontend&quot;: {
+          &quot;virtualAddress&quot;: {
+            &quot;port&quot;: 31400,
+            &quot;bindAddr&quot;: &quot;172.16.100.195&quot;
+          },
+          &quot;partition&quot;: &quot;k8s&quot;,
+          &quot;balance&quot;: &quot;least-connections-member&quot;,
+          &quot;mode&quot;: &quot;tcp&quot;
+        }
+      }
+    }
+</code></pre><p>F5 will automatically generate the following configuration in the red box:</p><p><img src="https://www.cnadn.net/upload/2020/06/1592839169293-1024x418.jpg?v=1592839202" alt="F5 will automatically generate the following configuration in the red box:"></p><p>Simulate access to the business from the outside, you can see that it can be accessed normally</p><pre><code># jlin @ Mac in ~ &amp;#91;myf5.net]
+$ for i in {1..2000}; do (date; sleep 1) | nc istiobookinfo.lab.f5se.io 32400; done
+one Mon Jun 22 22:24:17 CST 2020
+one Mon Jun 22 22:24:18 CST 2020
+one Mon Jun 22 22:24:19 CST 2020
+</code></pre><p>At this point, the newly released service monitor on Istio Ingressgateway is successfully automatically posted to BIGIP. Users only need to access BIGIP&rsquo;s VS to access services within k8s (on Istio Ingressgateway).</p><p>For the subsequent release of other new port services, repeat the above steps.</p><blockquote><p>Note: The above configuration uses the non-F5 AS3 configmap configuration method, if you are using CIS 2.0, you need to pay attention to this issue
+<a href=https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341>https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341</a></p></blockquote><p>Check more istio practice detail at my tech blog <a href=https://cnadn.net>https://cnadn.net</a></p></div><div class=article-tags><a class="badge badge-light" href=/tags/istio/>istio</a>
+<a class="badge badge-light" href=/tags/envoy/>envoy</a>
+<a class="badge badge-light" href=/tags/f5/>f5</a></div><div class="media author-card" itemscope itemtype=http://schema.org/Person><div class=media-body><h5 class=card-title itemprop=name><a href=https://linjing.io>Jing Lin (林静)</a></h5><h6 class=card-subtitle>Solution Architect@F5</h6><p class=card-text itemprop=description>Check my tech blog for more <a href=https://cnadn.net>https://cnadn.net</a></p><ul class=network-icon aria-hidden=true></ul></div></div><div class=article-widget><div class=hr-light></div><h3>Related</h3><ul><li><a href=/publication/f5-cloudnative-adc-2019/>From legacy ADC to cloud native ADC serials</a></li><li><a href=/publication/f5-cloudnative-adc-2019-infoq/>Viewing the construction of cloud native from the perspective of application delivery</a></li></ul></div></div></article><script src=https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin=anonymous></script><script src=https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/4.1.4/imagesloaded.pkgd.min.js integrity="sha256-lqvxZrPLtfffUl2G/e7szqSvPBILGbwmsGE1MKlOi0Q=" crossorigin=anonymous></script><script src=https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.min.js integrity="sha256-CBrpuqrMhXwcLLUd5tvQ4euBHCdh7wGlDfNz8vbu/iI=" crossorigin=anonymous></script><script src=https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js integrity="sha256-X5PoE3KU5l+JcX+w09p/wHl9AzK333C4hJ2I9S5mD4M=" crossorigin=anonymous></script><script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js integrity="sha256-aYTdUrn6Ow1DDgh5JTc3aDGnnju48y/1c8s1dgkYPQ8=" crossorigin=anonymous></script><script>hljs.initHighlightingOnLoad();</script><script>const search_index_filename="/index.json";const i18n={'placeholder':"Search...",'results':"results found",'no_results':"No results found"};const content_type={'post':"Posts",'project':"Projects",'publication':"Publications",'talk':"Talks"};</script><script id=search-hit-fuse-template type=text/x-template>
+      <div class="search-hit" id="summary-{{key}}">
+      <div class="search-hit-content">
+        <div class="search-hit-name">
+          <a href="{{relpermalink}}">{{title}}</a>
+          <div class="article-metadata search-hit-type">{{type}}</div>
+          <p class="search-hit-description">{{snippet}}</p>
+        </div>
+      </div>
+      </div>
+    </script><script src=https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js integrity="sha256-VzgmKYmhsGNNN4Ph1kMW+BjoYJM2jV5i4IlFoeZA9XI=" crossorigin=anonymous></script><script src=https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin=anonymous></script><script src=/js/academia.min.e4fc229c2f28284fc2dfa5b66a52b765.js></script><div class=container><footer class=site-footer><div class=container><div class=row><div class=col-md-6><p>COPYRIGHT © 2020 linjing.io &#183;
+Powered by
+<a href=https://themefisher.com target=_blank rel=noopener>themefisher</a> for
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a>.</p></div><div class=col-md-6><ul class="list-inline network-icon text-right"><li class=list-inline-item><a href=https://github.com/myf5 target=_blank rel=noopener title=Github><i class="fab fa-github" aria-hidden=true></i></a></li><li class=list-inline-item><a href=https://www.linkedin.com/in/jing-lin-218b3915/ target=_blank rel=noopener title=Linkedin><i class="fab fa-linkedin" aria-hidden=true></i></a></li><li class=list-inline-item><a href=https://www.cnadn.net target=_blank rel=noopener title="My blog"><i class="fab fa-wordpress" aria-hidden=true></i></a></li></ul></div></div></div></footer></div><div id=modal class="modal fade" role=dialog><div class=modal-dialog><div class=modal-content><div class=modal-header><h5 class=modal-title>Cite</h5><button type=button class=close data-dismiss=modal aria-label=Close>
+<span aria-hidden=true>&#215;</span></button></div><div class=modal-body><pre><code class="tex hljs"></code></pre></div><div class=modal-footer><a class="btn btn-outline-primary my-1 js-copy-cite" href=# target=_blank><i class="fas fa-copy"></i>Copy</a>
+<a class="btn btn-outline-primary my-1 js-download-cite" href=# target=_blank><i class="fas fa-download"></i>Download</a><div id=modal-error></div></div></div></div></div></body></html>

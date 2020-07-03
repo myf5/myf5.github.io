@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>f5 on Jing Lin‘s profile</title><link>https://linjing.io/tags/f5/</link><description>Recent content in f5 on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>COPYRIGHT © 2020 linjing.io</copyright><lastBuildDate>Tue, 30 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://linjing.io/tags/f5/index.xml" rel="self" type="application/rss+xml"/><item><title>What changes does envoy bring to ADN</title><link>https://linjing.io/publication/envoy-2020-6/</link><pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate><guid>https://linjing.io/publication/envoy-2020-6/</guid><description>&lt;!-- raw HTML omitted -->
+&lt;p>Check here for full article &lt;a href="https://www.servicemesher.com/blog/thoughts-to-envoy-from-adn-perspective/">The link&lt;/a>.&lt;/p></description></item><item><title>F5 BIG-IP links Istio to enhance ingress service capabilities</title><link>https://linjing.io/post/f5-istio-work-together/</link><pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate><guid>https://linjing.io/post/f5-istio-work-together/</guid><description>&lt;p>In the Istio system, in order to ensure the unity of policy coordination and experience, users will consider using Istio&amp;rsquo;s own Ingressgateway as the entrance to north-south traffic. Ingressgateway is generally deployed by deployment of multiple pods, scattered on multiple nodes of the cluster, depending on Due to the specific exposure type, especially in on-prem deployment, it is still necessary to deploy relevant load balancers outside the k8s cluster to load balance these ingressgateways, on the one hand, it can avoid access difficulties and operation and maintenance difficulties caused by multiple entrances. On the other hand, the high-performance and high-reliability F5 BIGIP can provide more function control and security value-added services for k8s cluster entrance traffic, which is similar to the Ingress controller.&lt;/p>
+&lt;p>Unlike exposing ordinary service svc to external BIG-IP, ingressgateway itself is a collection point of various service ports. It may itself listen to many ports, so it is not easy to treat ingressgateway as a single ordinary svc. This article mainly explains how to combine Istio ingressgateway with BIG-IP to enhance the entrance business capability.&lt;/p>
+&lt;p>The possible methods on the network structure are:&lt;/p>
+&lt;p>External load balancer &amp;mdash; access to &amp;ndash;&amp;gt; ingressgateway&amp;rsquo;s nodeport port&lt;/p>
+&lt;p>External load balancer &amp;mdash; access to &amp;ndash;&amp;gt; ingressgateway direct endpoints port (direct to pod)&lt;/p>
+&lt;p>From the point of view of performance, it is naturally the second direct pod method mentioned above that has better performance, depending on the network model of the k8s cluster. If the external and pod can be directly routed or the two-layer direct connection is naturally the easiest, if it cannot be directly routed, it needs to be based on vxlan and other tunnels to achieve pod direct. F5 BIGIP supports Layer 2 direct, dynamic routing or vxlan tunnel mode. Refer to this article for detailed network deployment structure , or search for related articles in this blog. In the following, we assume that F5 BIGIP has implemented vxlan with k8s cluster, which can reach the pod directly. The final data path is as follows:&lt;/p>
+&lt;p>&lt;strong>client&amp;ndash;&amp;gt;F5BIGIP&amp;ndash;&amp;gt;Istio ingressgateway pod&amp;ndash;&amp;gt;endpoints&lt;/strong>&lt;/p>
+&lt;p>The underlying implementation of Istio Ingressgateway is envoy. When we publish a service to Ingressgateway through Gateway+VirtualService resource, Ingressgateway will listen to the port specified in Gateway. Therefore, once a new service is released, there may be a new listening port. However, when we deploy the ingressgateway pod, we will not configure all the external mappings in advance. That is to say, the port that the container in the pod listens to is not configured in the deployment of the pod. Don’t worry, it can be directly accessed at this time. This listening port on the pod, although the deployment port is not specified in advance.&lt;/p>
+&lt;p>So how to load balance for Ingressgateway through BIGIP and dynamically discover these new monitoring services? The answer is naturally the solution described in this article. F5 BIGIP provides a controller that runs inside k8s and automatically pushes these changes to BIGIP. on. Since the same k8s svc contains one more port, you need to pay attention to the servicePort parameter when publishing this k8s svc to F5. The specific publishing process refers to the following steps:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>Deploy Istio Gateway+VirtualService resources&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Edit the k8s svc corresponding to the existing Ingressgateway and add new port and target port configurations&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Configure a new F5 configmap resource and specify the corresponding servicePort to publish the new service&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="demo">DEMO:&lt;/h2>
+&lt;ol>
+&lt;li>First check the existing Ingressgateway pod ports are as follows, port 32400 is not exposed in the container port&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code> name: istio-proxy
+ports:
+- containerPort: 15020
+protocol: TCP
+- containerPort: 8080
+protocol: TCP
+- containerPort: 8443
+protocol: TCP
+- containerPort: 31400
+protocol: TCP
+- containerPort: 15443
+protocol: TCP
+- containerPort: 15011
+protocol: TCP
+- containerPort: 15012
+protocol: TCP
+- containerPort: 8060
+protocol: TCP
+- containerPort: 853
+protocol: TCP
+- containerPort: 15090
+name: http-envoy-prom
+protocol: TCP
+&lt;/code>&lt;/pre>&lt;ol start="2">
+&lt;li>Deploy Istio Gateway and VirtualService&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+name: tcp-echo-gateway
+spec:
+selector:
+istio: ingressgateway
+servers:
+- port:
+number: 32400
+name: tcp
+protocol: TCP
+hosts:
+- &amp;quot;*&amp;quot;
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+name: tcp-echo-destination
+spec:
+host: tcp-echo
+subsets:
+- name: v1
+labels:
+version: v1
+- name: v2
+labels:
+version: v2
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+name: tcp-echo
+spec:
+hosts:
+- &amp;quot;*&amp;quot;
+gateways:
+- tcp-echo-gateway
+tcp:
+- match:
+- port: 32400 ###########32400端口监听
+route:
+- destination:
+host: tcp-echo
+port:
+number: 9000
+subset: v1
+&lt;/code>&lt;/pre>&lt;ol start="3">
+&lt;li>After the deployment is complete, check envoy to confirm that the monitoring has been issued&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code> {
+&amp;quot;name&amp;quot;: &amp;quot;0.0.0.0_32400&amp;quot;,
+&amp;quot;address&amp;quot;: {
+&amp;quot;socketAddress&amp;quot;: {
+&amp;quot;address&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;portValue&amp;quot;: 32400
+}
+},
+&amp;quot;filterChains&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+。。。。。。。。。。省略。。。。。。。。。。
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;:
+。。。。。
+&amp;quot;cluster&amp;quot;: &amp;quot;outbound|9000|v1|tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local&amp;quot;,
+。。。。。
+}
+}
+]
+}
+],
+&amp;quot;trafficDirection&amp;quot;: &amp;quot;OUTBOUND&amp;quot;
+},
+&lt;/code>&lt;/pre>&lt;ol start="4">
+&lt;li>Modify the existing Ingressgateway svc, increase the external exposure of 32400 port&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>kubectl edit svc istio-ingressgateway -n istio-system -o yaml
+修改前：
+ports:
+- name: status-port
+nodePort: 31702
+port: 15020
+protocol: TCP
+targetPort: 15020
+- name: http2
+nodePort: 31547
+port: 80
+protocol: TCP
+targetPort: 8080
+- name: https
+nodePort: 31956
+port: 443
+protocol: TCP
+targetPort: 8443
+- name: tcp
+nodePort: 30775
+port: 31400
+protocol: TCP
+targetPort: 31400
+- name: tls
+nodePort: 30536
+port: 15443
+protocol: TCP
+targetPort: 15443
+selector:
+app: istio-ingressgateway
+istio: ingressgateway
+sessionAffinity: None
+type: LoadBalancer
+修改后：
+ports:
+- name: status-port
+nodePort: 31702
+port: 15020
+protocol: TCP
+targetPort: 15020
+- name: http2
+nodePort: 31547
+port: 80
+protocol: TCP
+targetPort: 8080
+- name: https
+nodePort: 31956
+port: 443
+protocol: TCP
+targetPort: 8443
+- name: tcp
+nodePort: 30775
+port: 31400
+protocol: TCP
+targetPort: 31400
+- name: tcp2
+nodePort: 30776
+port: 32400
+protocol: TCP
+targetPort: 32400 #########新增端口
+- name: tls
+nodePort: 30536
+port: 15443
+protocol: TCP
+targetPort: 15443
+root@k8s-master-v1-16 ~]# kubectl get svc -n istio-system
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+grafana ClusterIP 10.96.165.101 &amp;amp;lt;none&amp;gt; 3000/TCP 2d
+istio-egressgateway ClusterIP 10.110.88.185 &amp;amp;lt;none&amp;gt; 80/TCP,443/TCP,15443/TCP 2d
+istio-ingressgateway LoadBalancer 10.96.122.225 &amp;amp;lt;pending&amp;gt; 15020:31702/TCP,80:31547/TCP,443:31956/TCP,31400:30775/TCP,32400:30776/TCP,15443:30536/TCP 2d
+istiod ClusterIP 10.102.252.88 &amp;amp;lt;none&amp;gt; 15010/TCP,15012/TCP,443/TCP,15014/TCP,53/UDP,853/TCP 2d
+jaeger-agent ClusterIP None &amp;amp;lt;none&amp;gt; 5775/UDP,6831/UDP,6832/UDP 2d
+jaeger-collector ClusterIP 10.105.130.171 &amp;amp;lt;none&amp;gt; 14267/TCP,14268/TCP,14250/TCP 2d
+jaeger-collector-headless ClusterIP None &amp;amp;lt;none&amp;gt; 14250/TCP 2d
+jaeger-query ClusterIP 10.99.139.251 &amp;amp;lt;none&amp;gt; 16686/TCP 2d
+kiali ClusterIP 10.101.189.237 &amp;amp;lt;none&amp;gt; 20001/TCP 2d
+prometheus ClusterIP 10.109.157.108 &amp;amp;lt;none&amp;gt; 9090/TCP 2d
+tracing ClusterIP 10.101.62.56 &amp;amp;lt;none&amp;gt; 80/TCP 2d
+zipkin ClusterIP 10.98.181.246 &amp;amp;lt;none&amp;gt; 9411/TCP
+&lt;/code>&lt;/pre>&lt;ol start="5">
+&lt;li>Publish the 32400 servicePort to F5, at this time you need to add an F5 configmap, pay attention to the Chinese comments&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>kind: ConfigMap
+apiVersion: v1
+metadata:
+name: istio-ingressgateway.32400.vs
+namespace: istio-system
+labels:
+f5type: virtual-server
+data:
+# See the f5-schema table for schema-controller compatibility
+# https://clouddocs.f5.com/containers/latest/releases_and_versioning.html#f5-schema
+schema: &amp;quot;f5schemadb://bigip-virtual-server_v0.1.7.json&amp;quot;
+data: |
+{
+&amp;quot;virtualServer&amp;quot;: {
+&amp;quot;backend&amp;quot;: {
+&amp;quot;serviceName&amp;quot;: &amp;quot;istio-ingressgateway&amp;quot;,
+&amp;quot;servicePort&amp;quot;: 32400
+####It is important here. The port of the corresponding k8s svc is filled in here. The F5 CIS controller will automatically find the targetPort (CIS cluster mode) or nodeport (CIS nodeport mode) corresponding to the servicePort
+},
+&amp;quot;frontend&amp;quot;: {
+&amp;quot;virtualAddress&amp;quot;: {
+&amp;quot;port&amp;quot;: 31400,
+&amp;quot;bindAddr&amp;quot;: &amp;quot;172.16.100.195&amp;quot;
+},
+&amp;quot;partition&amp;quot;: &amp;quot;k8s&amp;quot;,
+&amp;quot;balance&amp;quot;: &amp;quot;least-connections-member&amp;quot;,
+&amp;quot;mode&amp;quot;: &amp;quot;tcp&amp;quot;
+}
+}
+}
+&lt;/code>&lt;/pre>&lt;p>F5 will automatically generate the following configuration in the red box:&lt;/p>
+&lt;p>&lt;img src="https://www.cnadn.net/upload/2020/06/1592839169293-1024x418.jpg?v=1592839202" alt="F5 will automatically generate the following configuration in the red box:">&lt;/p>
+&lt;p>Simulate access to the business from the outside, you can see that it can be accessed normally&lt;/p>
+&lt;pre>&lt;code># jlin @ Mac in ~ &amp;amp;#91;myf5.net]
+$ for i in {1..2000}; do (date; sleep 1) | nc istiobookinfo.lab.f5se.io 32400; done
+one Mon Jun 22 22:24:17 CST 2020
+one Mon Jun 22 22:24:18 CST 2020
+one Mon Jun 22 22:24:19 CST 2020
+&lt;/code>&lt;/pre>&lt;p>At this point, the newly released service monitor on Istio Ingressgateway is successfully automatically posted to BIGIP. Users only need to access BIGIP&amp;rsquo;s VS to access services within k8s (on Istio Ingressgateway).&lt;/p>
+&lt;p>For the subsequent release of other new port services, repeat the above steps.&lt;/p>
+&lt;blockquote>
+&lt;p>Note: The above configuration uses the non-F5 AS3 configmap configuration method, if you are using CIS 2.0, you need to pay attention to this issue
+&lt;a href="https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341">https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://cnadn.net">https://cnadn.net&lt;/a>&lt;/p></description></item><item><title>From legacy ADC to cloud native ADC serials</title><link>https://linjing.io/publication/f5-cloudnative-adc-2019/</link><pubDate>Mon, 26 Aug 2019 00:00:00 +0000</pubDate><guid>https://linjing.io/publication/f5-cloudnative-adc-2019/</guid><description>&lt;!-- raw HTML omitted -->
+&lt;p>The serials include:&lt;/p>
+&lt;ul>
+&lt;li>Opening ………… What is ADC&lt;/li>
+&lt;li>Chapter 1 ………… Cloud Native Introduction&lt;/li>
+&lt;li>Chapter 2 ………… Financial Industry and Cloud Native&lt;/li>
+&lt;li>Chapter 3 ………… F5/Nginx and Cloud Native&lt;/li>
+&lt;li>Chapter 4 ………… Cloud Native ADC&lt;/li>
+&lt;li>Chapter 5 ………… PaaS platform services exposed&lt;/li>
+&lt;li>Chapter 6 ………… Service Mesh&lt;/li>
+&lt;li>Chapter 7 ………… API priority&lt;/li>
+&lt;li>Chapter 8 ………… Cloud-Ready&amp;rsquo;s first step towards cloud native&lt;/li>
+&lt;/ul>
+&lt;p>Check here for full article &lt;a href="https://mp.weixin.qq.com/s?src=11&amp;amp;timestamp=1593747903&amp;amp;ver=2437&amp;amp;signature=leiJvKEmHTvn*yyw6bL07z82bZgQhGOCnagUwEu19mrUmVTYvzumj8dBZIs-oa2PXl6JKtgWuV9f6e0x3Pm6x4cI05D53WhNlEBeEp6yzVj7rxqacvebvYrEuYx2PMGy&amp;amp;new=1">The link&lt;/a>.&lt;/p></description></item><item><title>Viewing the construction of cloud native from the perspective of application delivery</title><link>https://linjing.io/publication/f5-cloudnative-adc-2019-infoq/</link><pubDate>Thu, 11 Jul 2019 00:00:00 +0000</pubDate><guid>https://linjing.io/publication/f5-cloudnative-adc-2019-infoq/</guid><description>&lt;!-- raw HTML omitted -->
+&lt;p>Check here for full article &lt;a href="https://mp.weixin.qq.com/s?src=11&amp;amp;timestamp=1593747903&amp;amp;ver=2437&amp;amp;signature=NMKNJY7DgRaQ96uW56ThcIWUIbCE6cmgl*31qXOkJlL2uf2BNnje7nb2JEmDWL7Qe59oB7G48iAPu3tUEqEh7Lqoi1ukoA*uyq-7kjp0*W9rwv777OcGywyn6VV4vIip&amp;amp;new=1">The link&lt;/a>.&lt;/p></description></item></channel></rss>

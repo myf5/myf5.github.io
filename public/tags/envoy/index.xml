@@ -1,0 +1,1595 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>envoy on Jing Lin‘s profile</title><link>https://linjing.io/tags/envoy/</link><description>Recent content in envoy on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>COPYRIGHT © 2020 linjing.io</copyright><lastBuildDate>Tue, 30 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://linjing.io/tags/envoy/index.xml" rel="self" type="application/rss+xml"/><item><title>What changes does envoy bring to ADN</title><link>https://linjing.io/publication/envoy-2020-6/</link><pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate><guid>https://linjing.io/publication/envoy-2020-6/</guid><description>&lt;!-- raw HTML omitted -->
+&lt;p>Check here for full article &lt;a href="https://www.servicemesher.com/blog/thoughts-to-envoy-from-adn-perspective/">The link&lt;/a>.&lt;/p></description></item><item><title>Istio sidecar iptables and traffic steering detail</title><link>https://linjing.io/post/istio-traffic-control-deepdive/</link><pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate><guid>https://linjing.io/post/istio-traffic-control-deepdive/</guid><description>&lt;h2 id="istio-injected-iptables">Istio injected iptables&lt;/h2>
+&lt;p>Istio implements the hijacking and processing of traffic by injecting the init container and envoy proxy container into the business pod. After the init container runs, the following NAT table rules for iptables will be generated in the corresponding linux namespace&lt;/p>
+&lt;pre>&lt;code>&amp;amp;#91;root@k8s-node1-v1-16 ~]# iptables -t nat -L -v
+Chain PREROUTING (policy ACCEPT 192K packets, 12M bytes)
+pkts bytes target prot opt in out source destination
+192K 12M ISTIO_INBOUND tcp -- any any anywhere anywhere
+Chain INPUT (policy ACCEPT 192K packets, 12M bytes)
+pkts bytes target prot opt in out source destination
+Chain OUTPUT (policy ACCEPT 40673 packets, 3694K bytes)
+pkts bytes target prot opt in out source destination
+8917 535K ISTIO_OUTPUT tcp -- any any anywhere anywhere
+Chain POSTROUTING (policy ACCEPT 40673 packets, 3694K bytes)
+pkts bytes target prot opt in out source destination
+Chain ISTIO_INBOUND (1 references)
+pkts bytes target prot opt in out source destination
+0 0 RETURN tcp -- any any anywhere anywhere tcp dpt:ssh
+356 21360 RETURN tcp -- any any anywhere anywhere tcp dpt:15090
+192K 11M RETURN tcp -- any any anywhere anywhere tcp dpt:15021
+0 0 RETURN tcp -- any any anywhere anywhere tcp dpt:15020
+34 2040 ISTIO_IN_REDIRECT tcp -- any any anywhere anywhere
+Chain ISTIO_IN_REDIRECT (3 references)
+pkts bytes target prot opt in out source destination
+34 2040 REDIRECT tcp -- any any anywhere anywhere redir ports 15006
+Chain ISTIO_OUTPUT (1 references)
+pkts bytes target prot opt in out source destination
+0 0 RETURN all -- any lo 127.0.0.6 anywhere
+0 0 ISTIO_IN_REDIRECT all -- any lo anywhere !localhost owner UID match 1337
+0 0 RETURN all -- any lo anywhere anywhere ! owner UID match 1337
+8917 535K RETURN all -- any any anywhere anywhere owner UID match 1337
+0 0 ISTIO_IN_REDIRECT all -- any lo anywhere !localhost owner GID match 1337
+0 0 RETURN all -- any lo anywhere anywhere ! owner GID match 1337
+0 0 RETURN all -- any any anywhere anywhere owner GID match 1337
+0 0 RETURN all -- any any anywhere localhost
+0 0 ISTIO_REDIRECT all -- any any anywhere anywhere
+Chain ISTIO_REDIRECT (1 references)
+pkts bytes target prot opt in out source destination
+0 0 REDIRECT tcp -- any any anywhere anywhere redir ports 15001
+&lt;/code>&lt;/pre>&lt;h2 id="outbound-flow-control">Outbound flow control&lt;/h2>
+&lt;p>When the business container sends the request to the outside, such as productpage to reviews: 9080 port access, this connection will be redirected by iptables to port 127.0.0.1:115001, and then processed by envoy.&lt;/p>
+&lt;blockquote>
+&lt;p>REDIRECT
+This target is only valid in the nat table, in the PREROUTING and OUTPUT chains, and user-defined chains which are only called from those chains. It redirects the packet to the machine itself by changing the destination IP to the primary address of the incoming interface (locally-generated packets are mapped to the localhost address, 127.0.0.1 for IPv4 and ::1 for IPv6).&lt;/p>
+&lt;p>&lt;a href="https://ipset.netfilter.org/iptables-extensions.man.html#lbDK">https://ipset.netfilter.org/iptables-extensions.man.html#lbDK&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>The virtualOutbound in envoy will be hit. This is a special listener. It contains the Original Destination listener filter. Note &amp;ldquo;useOriginalDst&amp;rdquo;: truethat after such configuration in the following configuration , envoy will re-find the matching listener in the configuration. If found, press the hit. The listener performs follow-up processing. If it cannot find it, it sends the request to the cluster in this listener. Here is a passthrough cluster. This cluster will forward the packet directly to the fourth layer.&lt;/p>
+&lt;pre>&lt;code>root@k8s-master-v1-16 ~]# istioctl proxy-config listener productpage-v1-7f4cc988c6-qxqjs.istio-bookinfo --port 15001 -o json
+&amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;virtualOutbound&amp;quot;,
+&amp;quot;address&amp;quot;: {
+&amp;quot;socketAddress&amp;quot;: {
+&amp;quot;address&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;portValue&amp;quot;: 15001
+}
+},
+&amp;quot;filterChains&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_outbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;tcp_stats_outbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;PassthroughCluster&amp;quot;,
+&amp;quot;cluster&amp;quot;: &amp;quot;PassthroughCluster&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+]
+}
+}
+],
+&amp;quot;name&amp;quot;: &amp;quot;virtualOutbound-catchall-tcp&amp;quot;
+}
+],
+&amp;quot;useOriginalDst&amp;quot;: true,
+&amp;quot;trafficDirection&amp;quot;: &amp;quot;OUTBOUND&amp;quot;
+}
+]
+&lt;/code>&lt;/pre>&lt;p>The above listener will hand over the connection to the listener that matches the original destination IP and port. In the bookinfo example, it will be handed over to the 9080 listener. There is a question to consider here. From the perspective of envoy, the destination port of this link is already 15001, why can it match the following port 0.0.0.0:9080. This is because the NAT is done in the system kernel when iptables is redirected. The system kernel has this converted storage. Envoy obtains the real destination port through getsockopt() , so that it can correctly match the business listener.&lt;/p>
+&lt;pre>&lt;code>&amp;amp;#91;root@k8s-master-v1-16 ~]# istioctl proxy-config listener productpage-v1-7f4cc988c6-qxqjs.istio-bookinfo --port 9080 -o json
+&amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;0.0.0.0_9080&amp;quot;,
+&amp;quot;address&amp;quot;: {
+&amp;quot;socketAddress&amp;quot;: {
+&amp;quot;address&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;portValue&amp;quot;: 9080
+}
+},
+&amp;quot;filterChains&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;http/1.0&amp;quot;,
+&amp;quot;http/1.1&amp;quot;,
+&amp;quot;h2c&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;outbound_0.0.0.0_9080&amp;quot;,
+&amp;quot;rds&amp;quot;: {
+&amp;quot;configSource&amp;quot;: {
+&amp;quot;ads&amp;quot;: {}
+},
+&amp;quot;routeConfigName&amp;quot;: &amp;quot;9080&amp;quot;
+},
+&lt;/code>&lt;/pre>&lt;pre>&lt;code>&amp;amp;#91;root@k8s-master-v1-16 ~]# istioctl proxy-config listener productpage-v1-7f4cc988c6-qxqjs.istio-bookinfo
+ADDRESS PORT TYPE
+10.102.252.88 15012 TCP
+10.96.122.225 31400 TCP
+10.96.0.10 53 TCP
+10.110.88.185 15443 TCP
+10.96.122.225 15443 TCP
+10.110.88.185 443 TCP
+10.102.252.88 443 TCP
+10.106.109.172 9001 TCP
+10.96.0.1 443 TCP
+10.96.122.225 443 TCP
+10.106.109.172 9000 TCP
+10.105.130.171 14267 HTTP+TCP
+10.96.81.27 5601 HTTP+TCP
+0.0.0.0 15014 HTTP+TCP
+10.105.130.171 14250 HTTP+TCP
+0.0.0.0 20001 HTTP+TCP
+0.0.0.0 9411 HTTP+TCP
+10.111.37.34 9090 HTTP+TCP
+10.105.145.36 80 HTTP+TCP
+10.105.130.171 14268 HTTP+TCP
+10.96.0.10 9153 HTTP+TCP
+10.110.244.188 80 HTTP+TCP
+10.102.252.88 853 HTTP+TCP
+10.99.139.251 16686 HTTP+TCP
+0.0.0.0 12345 HTTP+TCP
+10.103.155.149 80 HTTP+TCP
+0.0.0.0 8000 HTTP+TCP
+0.0.0.0 15010 HTTP+TCP
+10.96.122.225 15020 HTTP+TCP
+0.0.0.0 9090 HTTP+TCP
+10.107.150.251 80 HTTP+TCP
+0.0.0.0 14250 HTTP+TCP
+0.0.0.0 80 HTTP+TCP
+0.0.0.0 3000 HTTP+TCP
+10.110.28.96 8181 HTTP+TCP
+10.102.69.143 9200 HTTP+TCP
+0.0.0.0 9080 HTTP+TCP 《《《《《《《《《《《《
+0.0.0.0 15001 TCP 《《《《《《《《《《《《
+0.0.0.0 15006 HTTP+TCP
+0.0.0.0 15090 HTTP
+0.0.0.0 15021 HTTP
+&lt;/code>&lt;/pre>&lt;p>Related passthrough cluster:&lt;/p>
+&lt;pre>&lt;code>root@k8s-master-v1-16 ~]# istioctl proxy-config cluster productpage-v1-7f4cc988c6-qxqjs.istio-bookinfo --fqdn PassthroughCluster -o json
+&amp;amp;#91;
+。。。。忽略。。。
+{
+&amp;quot;name&amp;quot;: &amp;quot;PassthroughCluster&amp;quot;,
+&amp;quot;type&amp;quot;: &amp;quot;ORIGINAL_DST&amp;quot;,
+&amp;quot;connectTimeout&amp;quot;: &amp;quot;10s&amp;quot;,
+&amp;quot;lbPolicy&amp;quot;: &amp;quot;CLUSTER_PROVIDED&amp;quot;,
+&amp;quot;circuitBreakers&amp;quot;: {
+&amp;quot;thresholds&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;maxConnections&amp;quot;: 4294967295,
+&amp;quot;maxPendingRequests&amp;quot;: 4294967295,
+&amp;quot;maxRequests&amp;quot;: 4294967295,
+&amp;quot;maxRetries&amp;quot;: 4294967295
+}
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+}
+]
+}
+]
+&lt;/code>&lt;/pre>&lt;h2 id="inbound-flow-control">Inbound flow control&lt;/h2>
+&lt;p>When it is an inbound request, the destination address of the packet is the IP of the pod, and the destination port is the real port of the business (9080, non-svc mapping port). Since the link destination port of iptables is changed to 15006, it will Hit virtual inbound listener (0.0.0.0:15006), this listener has a series of filterchain, and the virtualoutbound listener configuration method is different, virtualinbound contains a series of actual service filters for specific ports, the connection will find specific in these fitlers Business matching. So how does it match the real 9080 business? For example, the following output:
+addressPrefix can be matched. If the pod actually has multiple ports, only addressPrefix does not match. It also needs to match the application layer protocol, but the DestinationPort in the Match condition is not matched . In fact, it is similar to Virtualoutbound. The filter of the original destination listener is also used, so envoy will obtain the real destination port and IP from the kernel. This configuration method is different from the virtual outbound &amp;ldquo;useOriginalDst&amp;rdquo;: true configuration method, because this is an updated configuration method.&amp;rdquo; useOriginalDst&amp;rdquo;: true This configuration is about to be abandoned.&lt;/p>
+&lt;p>&lt;code>&amp;quot;listenerFilters&amp;quot;: [ { &amp;quot;name&amp;quot;: &amp;quot;envoy.listener.original_dst&amp;quot;, &amp;quot;typedConfig&amp;quot;: { &amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.listener.original_dst.v2.OriginalDst&amp;quot; } },&lt;/code>&lt;/p>
+&lt;p>(According to &lt;a href="https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto,">https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto,&lt;/a> the filtermatch condition is that all must match)&lt;/p>
+&lt;pre>&lt;code> {
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;destinationPort&amp;quot;: 9080,
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;10.244.2.138&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 32
+}
+],
+### 根据https://istio.io/latest/zh/docs/ops/deployment/requirements/ ,
+### 同一个业务端口是不能被两个用不同协议的svc来发布的，因此这帮助避免了同端口同协议的match在整个配置文件里的出现。
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;istio&amp;quot;,
+&amp;quot;istio-http/1.0&amp;quot;,
+&amp;quot;istio-http/1.1&amp;quot;,
+&amp;quot;istio-h2&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;inbound_10.244.2.138_9080&amp;quot;,
+&amp;quot;routeConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;virtualHosts&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;inbound|http|9080&amp;quot;,
+&amp;quot;domains&amp;quot;: &amp;amp;#91;
+&amp;quot;*&amp;quot;
+],
+&amp;quot;routes&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;match&amp;quot;: {
+&amp;quot;prefix&amp;quot;: &amp;quot;/&amp;quot;
+},
+&amp;quot;route&amp;quot;: {
+&amp;quot;cluster&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;timeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;maxGrpcTimeout&amp;quot;: &amp;quot;0s&amp;quot;
+},
+&amp;quot;decorator&amp;quot;: {
+&amp;quot;operation&amp;quot;: &amp;quot;productpage.istio-bookinfo.svc.cluster.local:9080/*&amp;quot;
+}
+}
+]
+}
+],
+&lt;/code>&lt;/pre>&lt;h2 id="last">Last&lt;/h2>
+&lt;p>Attach the actual configuration of 15006&lt;/p>
+&lt;pre>&lt;code>&amp;amp;#91;root@k8s-master-v1-16 ~]# istioctl proxy-config listener productpage-v1-7f4cc988c6-qxqjs.istio-bookinfo --port 15006 -o json
+&amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;virtualInbound&amp;quot;,
+&amp;quot;address&amp;quot;: {
+&amp;quot;socketAddress&amp;quot;: {
+&amp;quot;address&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;portValue&amp;quot;: 15006
+}
+},
+&amp;quot;filterChains&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 0
+}
+],
+&amp;quot;transportProtocol&amp;quot;: &amp;quot;tls&amp;quot;,
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;istio-peer-exchange&amp;quot;,
+&amp;quot;istio&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;tcp_stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;cluster&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+]
+}
+}
+],
+&amp;quot;transportSocket&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;envoy.transport_sockets.tls&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext&amp;quot;,
+&amp;quot;commonTlsContext&amp;quot;: {
+&amp;quot;tlsCertificateSdsSecretConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+],
+&amp;quot;combinedValidationContext&amp;quot;: {
+&amp;quot;defaultValidationContext&amp;quot;: {},
+&amp;quot;validationContextSdsSecretConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;ROOTCA&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+},
+&amp;quot;alpnProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;istio-peer-exchange&amp;quot;,
+&amp;quot;h2&amp;quot;,
+&amp;quot;http/1.1&amp;quot;
+]
+},
+&amp;quot;requireClientCertificate&amp;quot;: true
+}
+},
+&amp;quot;name&amp;quot;: &amp;quot;virtualInbound&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 0
+}
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;tcp_stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;cluster&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+]
+}
+}
+],
+&amp;quot;name&amp;quot;: &amp;quot;virtualInbound&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 0
+}
+],
+&amp;quot;transportProtocol&amp;quot;: &amp;quot;tls&amp;quot;,
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;http/1.0&amp;quot;,
+&amp;quot;http/1.1&amp;quot;,
+&amp;quot;h2c&amp;quot;,
+&amp;quot;istio-http/1.0&amp;quot;,
+&amp;quot;istio-http/1.1&amp;quot;,
+&amp;quot;istio-h2&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;routeConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;virtualHosts&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;inbound|http|0&amp;quot;,
+&amp;quot;domains&amp;quot;: &amp;amp;#91;
+&amp;quot;*&amp;quot;
+],
+&amp;quot;routes&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;match&amp;quot;: {
+&amp;quot;prefix&amp;quot;: &amp;quot;/&amp;quot;
+},
+&amp;quot;route&amp;quot;: {
+&amp;quot;cluster&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;timeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;maxGrpcTimeout&amp;quot;: &amp;quot;0s&amp;quot;
+},
+&amp;quot;decorator&amp;quot;: {
+&amp;quot;operation&amp;quot;: &amp;quot;:0/*&amp;quot;
+}
+}
+]
+}
+],
+&amp;quot;validateClusters&amp;quot;: false
+},
+&amp;quot;httpFilters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{}\n&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.metadata_exchange&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.cors&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.cors.v2.Cors&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.fault&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.fault.v2.HTTPFault&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.router&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.router.v2.Router&amp;quot;
+}
+}
+],
+&amp;quot;tracing&amp;quot;: {
+&amp;quot;clientSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;randomSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;overallSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+}
+},
+&amp;quot;serverName&amp;quot;: &amp;quot;istio-envoy&amp;quot;,
+&amp;quot;streamIdleTimeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+],
+&amp;quot;useRemoteAddress&amp;quot;: false,
+&amp;quot;generateRequestId&amp;quot;: true,
+&amp;quot;forwardClientCertDetails&amp;quot;: &amp;quot;APPEND_FORWARD&amp;quot;,
+&amp;quot;setCurrentClientCertDetails&amp;quot;: {
+&amp;quot;subject&amp;quot;: true,
+&amp;quot;dns&amp;quot;: true,
+&amp;quot;uri&amp;quot;: true
+},
+&amp;quot;upgradeConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;upgradeType&amp;quot;: &amp;quot;websocket&amp;quot;
+}
+],
+&amp;quot;normalizePath&amp;quot;: true
+}
+}
+],
+&amp;quot;transportSocket&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;envoy.transport_sockets.tls&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext&amp;quot;,
+&amp;quot;commonTlsContext&amp;quot;: {
+&amp;quot;tlsCertificateSdsSecretConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+],
+&amp;quot;combinedValidationContext&amp;quot;: {
+&amp;quot;defaultValidationContext&amp;quot;: {},
+&amp;quot;validationContextSdsSecretConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;ROOTCA&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+},
+&amp;quot;alpnProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;h2&amp;quot;,
+&amp;quot;http/1.1&amp;quot;
+]
+},
+&amp;quot;requireClientCertificate&amp;quot;: true
+}
+},
+&amp;quot;name&amp;quot;: &amp;quot;virtualInbound-catchall-http&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 0
+}
+],
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;http/1.0&amp;quot;,
+&amp;quot;http/1.1&amp;quot;,
+&amp;quot;h2c&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;routeConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;virtualHosts&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;inbound|http|0&amp;quot;,
+&amp;quot;domains&amp;quot;: &amp;amp;#91;
+&amp;quot;*&amp;quot;
+],
+&amp;quot;routes&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;match&amp;quot;: {
+&amp;quot;prefix&amp;quot;: &amp;quot;/&amp;quot;
+},
+&amp;quot;route&amp;quot;: {
+&amp;quot;cluster&amp;quot;: &amp;quot;InboundPassthroughClusterIpv4&amp;quot;,
+&amp;quot;timeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;maxGrpcTimeout&amp;quot;: &amp;quot;0s&amp;quot;
+},
+&amp;quot;decorator&amp;quot;: {
+&amp;quot;operation&amp;quot;: &amp;quot;:0/*&amp;quot;
+}
+}
+]
+}
+],
+&amp;quot;validateClusters&amp;quot;: false
+},
+&amp;quot;httpFilters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{}\n&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.metadata_exchange&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.cors&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.cors.v2.Cors&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.fault&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.fault.v2.HTTPFault&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.router&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.router.v2.Router&amp;quot;
+}
+}
+],
+&amp;quot;tracing&amp;quot;: {
+&amp;quot;clientSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;randomSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;overallSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+}
+},
+&amp;quot;serverName&amp;quot;: &amp;quot;istio-envoy&amp;quot;,
+&amp;quot;streamIdleTimeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+],
+&amp;quot;useRemoteAddress&amp;quot;: false,
+&amp;quot;generateRequestId&amp;quot;: true,
+&amp;quot;forwardClientCertDetails&amp;quot;: &amp;quot;APPEND_FORWARD&amp;quot;,
+&amp;quot;setCurrentClientCertDetails&amp;quot;: {
+&amp;quot;subject&amp;quot;: true,
+&amp;quot;dns&amp;quot;: true,
+&amp;quot;uri&amp;quot;: true
+},
+&amp;quot;upgradeConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;upgradeType&amp;quot;: &amp;quot;websocket&amp;quot;
+}
+],
+&amp;quot;normalizePath&amp;quot;: true
+}
+}
+],
+&amp;quot;name&amp;quot;: &amp;quot;virtualInbound-catchall-http&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;destinationPort&amp;quot;: 15021,
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;10.244.2.155&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 32
+}
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;tcp_stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;inbound|15021|mgmt-15021|mgmtCluster&amp;quot;,
+&amp;quot;cluster&amp;quot;: &amp;quot;inbound|15021|mgmt-15021|mgmtCluster&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+]
+}
+}
+],
+&amp;quot;name&amp;quot;: &amp;quot;10.244.2.155_15021&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;destinationPort&amp;quot;: 9080,
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;10.244.2.155&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 32
+}
+],
+&amp;quot;applicationProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;istio&amp;quot;,
+&amp;quot;istio-http/1.0&amp;quot;,
+&amp;quot;istio-http/1.1&amp;quot;,
+&amp;quot;istio-h2&amp;quot;
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;inbound_10.244.2.155_9080&amp;quot;,
+&amp;quot;routeConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;virtualHosts&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;inbound|http|9080&amp;quot;,
+&amp;quot;domains&amp;quot;: &amp;amp;#91;
+&amp;quot;*&amp;quot;
+],
+&amp;quot;routes&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;match&amp;quot;: {
+&amp;quot;prefix&amp;quot;: &amp;quot;/&amp;quot;
+},
+&amp;quot;route&amp;quot;: {
+&amp;quot;cluster&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;timeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;maxGrpcTimeout&amp;quot;: &amp;quot;0s&amp;quot;
+},
+&amp;quot;decorator&amp;quot;: {
+&amp;quot;operation&amp;quot;: &amp;quot;productpage.istio-bookinfo.svc.cluster.local:9080/*&amp;quot;
+}
+}
+]
+}
+],
+&amp;quot;validateClusters&amp;quot;: false
+},
+&amp;quot;httpFilters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{}\n&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.metadata_exchange&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio_authn&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/istio.envoy.config.filter.http.authn.v2alpha1.FilterConfig&amp;quot;,
+&amp;quot;policy&amp;quot;: {
+&amp;quot;peers&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;mtls&amp;quot;: {
+&amp;quot;mode&amp;quot;: &amp;quot;PERMISSIVE&amp;quot;
+}
+}
+]
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.cors&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.cors.v2.Cors&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.fault&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.fault.v2.HTTPFault&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.router&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.router.v2.Router&amp;quot;
+}
+}
+],
+&amp;quot;tracing&amp;quot;: {
+&amp;quot;clientSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;randomSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;overallSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+}
+},
+&amp;quot;serverName&amp;quot;: &amp;quot;istio-envoy&amp;quot;,
+&amp;quot;streamIdleTimeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+],
+&amp;quot;useRemoteAddress&amp;quot;: false,
+&amp;quot;generateRequestId&amp;quot;: true,
+&amp;quot;forwardClientCertDetails&amp;quot;: &amp;quot;APPEND_FORWARD&amp;quot;,
+&amp;quot;setCurrentClientCertDetails&amp;quot;: {
+&amp;quot;subject&amp;quot;: true,
+&amp;quot;dns&amp;quot;: true,
+&amp;quot;uri&amp;quot;: true
+},
+&amp;quot;upgradeConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;upgradeType&amp;quot;: &amp;quot;websocket&amp;quot;
+}
+],
+&amp;quot;normalizePath&amp;quot;: true
+}
+}
+],
+&amp;quot;transportSocket&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;envoy.transport_sockets.tls&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext&amp;quot;,
+&amp;quot;commonTlsContext&amp;quot;: {
+&amp;quot;tlsCertificateSdsSecretConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+],
+&amp;quot;combinedValidationContext&amp;quot;: {
+&amp;quot;defaultValidationContext&amp;quot;: {},
+&amp;quot;validationContextSdsSecretConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;ROOTCA&amp;quot;,
+&amp;quot;sdsConfig&amp;quot;: {
+&amp;quot;apiConfigSource&amp;quot;: {
+&amp;quot;apiType&amp;quot;: &amp;quot;GRPC&amp;quot;,
+&amp;quot;grpcServices&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;envoyGrpc&amp;quot;: {
+&amp;quot;clusterName&amp;quot;: &amp;quot;sds-grpc&amp;quot;
+}
+}
+]
+}
+}
+}
+},
+&amp;quot;alpnProtocols&amp;quot;: &amp;amp;#91;
+&amp;quot;h2&amp;quot;,
+&amp;quot;http/1.1&amp;quot;
+]
+},
+&amp;quot;requireClientCertificate&amp;quot;: true
+}
+},
+&amp;quot;name&amp;quot;: &amp;quot;10.244.2.155_9080&amp;quot;
+},
+{
+&amp;quot;filterChainMatch&amp;quot;: {
+&amp;quot;destinationPort&amp;quot;: 9080,
+&amp;quot;prefixRanges&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;addressPrefix&amp;quot;: &amp;quot;10.244.2.155&amp;quot;,
+&amp;quot;prefixLen&amp;quot;: 32
+}
+]
+},
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.tcp.metadataexchange.config.MetadataExchange&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;protocol&amp;quot;: &amp;quot;istio-peer-exchange&amp;quot;
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.http_connection_manager&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&amp;quot;,
+&amp;quot;statPrefix&amp;quot;: &amp;quot;inbound_10.244.2.155_9080&amp;quot;,
+&amp;quot;routeConfig&amp;quot;: {
+&amp;quot;name&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;virtualHosts&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;inbound|http|9080&amp;quot;,
+&amp;quot;domains&amp;quot;: &amp;amp;#91;
+&amp;quot;*&amp;quot;
+],
+&amp;quot;routes&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;default&amp;quot;,
+&amp;quot;match&amp;quot;: {
+&amp;quot;prefix&amp;quot;: &amp;quot;/&amp;quot;
+},
+&amp;quot;route&amp;quot;: {
+&amp;quot;cluster&amp;quot;: &amp;quot;inbound|9080|http|productpage.istio-bookinfo.svc.cluster.local&amp;quot;,
+&amp;quot;timeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;maxGrpcTimeout&amp;quot;: &amp;quot;0s&amp;quot;
+},
+&amp;quot;decorator&amp;quot;: {
+&amp;quot;operation&amp;quot;: &amp;quot;productpage.istio-bookinfo.svc.cluster.local:9080/*&amp;quot;
+}
+}
+]
+}
+],
+&amp;quot;validateClusters&amp;quot;: false
+},
+&amp;quot;httpFilters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.metadata_exchange&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{}\n&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.metadata_exchange&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio_authn&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/istio.envoy.config.filter.http.authn.v2alpha1.FilterConfig&amp;quot;,
+&amp;quot;policy&amp;quot;: {
+&amp;quot;peers&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;mtls&amp;quot;: {
+&amp;quot;mode&amp;quot;: &amp;quot;PERMISSIVE&amp;quot;
+}
+}
+]
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.cors&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.cors.v2.Cors&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.fault&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.fault.v2.HTTPFault&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;istio.stats&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/udpa.type.v1.TypedStruct&amp;quot;,
+&amp;quot;typeUrl&amp;quot;: &amp;quot;type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm&amp;quot;,
+&amp;quot;value&amp;quot;: {
+&amp;quot;config&amp;quot;: {
+&amp;quot;configuration&amp;quot;: &amp;quot;{\n \&amp;quot;debug\&amp;quot;: \&amp;quot;false\&amp;quot;,\n \&amp;quot;stat_prefix\&amp;quot;: \&amp;quot;istio\&amp;quot;\n}\n&amp;quot;,
+&amp;quot;root_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;,
+&amp;quot;vm_config&amp;quot;: {
+&amp;quot;code&amp;quot;: {
+&amp;quot;local&amp;quot;: {
+&amp;quot;inline_string&amp;quot;: &amp;quot;envoy.wasm.stats&amp;quot;
+}
+},
+&amp;quot;runtime&amp;quot;: &amp;quot;envoy.wasm.runtime.null&amp;quot;,
+&amp;quot;vm_id&amp;quot;: &amp;quot;stats_inbound&amp;quot;
+}
+}
+}
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.router&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.http.router.v2.Router&amp;quot;
+}
+}
+],
+&amp;quot;tracing&amp;quot;: {
+&amp;quot;clientSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;randomSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+},
+&amp;quot;overallSampling&amp;quot;: {
+&amp;quot;value&amp;quot;: 100
+}
+},
+&amp;quot;serverName&amp;quot;: &amp;quot;istio-envoy&amp;quot;,
+&amp;quot;streamIdleTimeout&amp;quot;: &amp;quot;0s&amp;quot;,
+&amp;quot;accessLog&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.file_access_log&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog&amp;quot;,
+&amp;quot;path&amp;quot;: &amp;quot;/dev/stdout&amp;quot;,
+&amp;quot;format&amp;quot;: &amp;quot;&amp;amp;#91;%START_TIME%] \&amp;quot;%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\&amp;quot; %RESPONSE_CODE% %RESPONSE_FLAGS% \&amp;quot;%DYNAMIC_METADATA(istio.mixer:status)%\&amp;quot; \&amp;quot;%UPSTREAM_TRANSPORT_FAILURE_REASON%\&amp;quot; %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \&amp;quot;%REQ(X-FORWARDED-FOR)%\&amp;quot; \&amp;quot;%REQ(USER-AGENT)%\&amp;quot; \&amp;quot;%REQ(X-REQUEST-ID)%\&amp;quot; \&amp;quot;%REQ(:AUTHORITY)%\&amp;quot; \&amp;quot;%UPSTREAM_HOST%\&amp;quot; %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n&amp;quot;
+}
+}
+],
+&amp;quot;useRemoteAddress&amp;quot;: false,
+&amp;quot;generateRequestId&amp;quot;: true,
+&amp;quot;forwardClientCertDetails&amp;quot;: &amp;quot;APPEND_FORWARD&amp;quot;,
+&amp;quot;setCurrentClientCertDetails&amp;quot;: {
+&amp;quot;subject&amp;quot;: true,
+&amp;quot;dns&amp;quot;: true,
+&amp;quot;uri&amp;quot;: true
+},
+&amp;quot;upgradeConfigs&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;upgradeType&amp;quot;: &amp;quot;websocket&amp;quot;
+}
+],
+&amp;quot;normalizePath&amp;quot;: true
+}
+}
+],
+&amp;quot;name&amp;quot;: &amp;quot;10.244.2.155_9080&amp;quot;
+}
+],
+&amp;quot;listenerFilters&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.listener.original_dst&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.listener.original_dst.v2.OriginalDst&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.listener.tls_inspector&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.listener.tls_inspector.v2.TlsInspector&amp;quot;
+}
+},
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.listener.http_inspector&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;: &amp;quot;type.googleapis.com/envoy.config.filter.listener.http_inspector.v2.HttpInspector&amp;quot;
+}
+}
+],
+&amp;quot;listenerFiltersTimeout&amp;quot;: &amp;quot;1s&amp;quot;,
+&amp;quot;continueOnListenerFiltersTimeout&amp;quot;: true,
+&amp;quot;trafficDirection&amp;quot;: &amp;quot;INBOUND&amp;quot;
+}
+]
+&lt;/code>&lt;/pre>&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://cnadn.net">https://cnadn.net&lt;/a>&lt;/p></description></item><item><title>F5 BIG-IP links Istio to enhance ingress service capabilities</title><link>https://linjing.io/post/f5-istio-work-together/</link><pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate><guid>https://linjing.io/post/f5-istio-work-together/</guid><description>&lt;p>In the Istio system, in order to ensure the unity of policy coordination and experience, users will consider using Istio&amp;rsquo;s own Ingressgateway as the entrance to north-south traffic. Ingressgateway is generally deployed by deployment of multiple pods, scattered on multiple nodes of the cluster, depending on Due to the specific exposure type, especially in on-prem deployment, it is still necessary to deploy relevant load balancers outside the k8s cluster to load balance these ingressgateways, on the one hand, it can avoid access difficulties and operation and maintenance difficulties caused by multiple entrances. On the other hand, the high-performance and high-reliability F5 BIGIP can provide more function control and security value-added services for k8s cluster entrance traffic, which is similar to the Ingress controller.&lt;/p>
+&lt;p>Unlike exposing ordinary service svc to external BIG-IP, ingressgateway itself is a collection point of various service ports. It may itself listen to many ports, so it is not easy to treat ingressgateway as a single ordinary svc. This article mainly explains how to combine Istio ingressgateway with BIG-IP to enhance the entrance business capability.&lt;/p>
+&lt;p>The possible methods on the network structure are:&lt;/p>
+&lt;p>External load balancer &amp;mdash; access to &amp;ndash;&amp;gt; ingressgateway&amp;rsquo;s nodeport port&lt;/p>
+&lt;p>External load balancer &amp;mdash; access to &amp;ndash;&amp;gt; ingressgateway direct endpoints port (direct to pod)&lt;/p>
+&lt;p>From the point of view of performance, it is naturally the second direct pod method mentioned above that has better performance, depending on the network model of the k8s cluster. If the external and pod can be directly routed or the two-layer direct connection is naturally the easiest, if it cannot be directly routed, it needs to be based on vxlan and other tunnels to achieve pod direct. F5 BIGIP supports Layer 2 direct, dynamic routing or vxlan tunnel mode. Refer to this article for detailed network deployment structure , or search for related articles in this blog. In the following, we assume that F5 BIGIP has implemented vxlan with k8s cluster, which can reach the pod directly. The final data path is as follows:&lt;/p>
+&lt;p>&lt;strong>client&amp;ndash;&amp;gt;F5BIGIP&amp;ndash;&amp;gt;Istio ingressgateway pod&amp;ndash;&amp;gt;endpoints&lt;/strong>&lt;/p>
+&lt;p>The underlying implementation of Istio Ingressgateway is envoy. When we publish a service to Ingressgateway through Gateway+VirtualService resource, Ingressgateway will listen to the port specified in Gateway. Therefore, once a new service is released, there may be a new listening port. However, when we deploy the ingressgateway pod, we will not configure all the external mappings in advance. That is to say, the port that the container in the pod listens to is not configured in the deployment of the pod. Don’t worry, it can be directly accessed at this time. This listening port on the pod, although the deployment port is not specified in advance.&lt;/p>
+&lt;p>So how to load balance for Ingressgateway through BIGIP and dynamically discover these new monitoring services? The answer is naturally the solution described in this article. F5 BIGIP provides a controller that runs inside k8s and automatically pushes these changes to BIGIP. on. Since the same k8s svc contains one more port, you need to pay attention to the servicePort parameter when publishing this k8s svc to F5. The specific publishing process refers to the following steps:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>Deploy Istio Gateway+VirtualService resources&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Edit the k8s svc corresponding to the existing Ingressgateway and add new port and target port configurations&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Configure a new F5 configmap resource and specify the corresponding servicePort to publish the new service&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="demo">DEMO:&lt;/h2>
+&lt;ol>
+&lt;li>First check the existing Ingressgateway pod ports are as follows, port 32400 is not exposed in the container port&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code> name: istio-proxy
+ports:
+- containerPort: 15020
+protocol: TCP
+- containerPort: 8080
+protocol: TCP
+- containerPort: 8443
+protocol: TCP
+- containerPort: 31400
+protocol: TCP
+- containerPort: 15443
+protocol: TCP
+- containerPort: 15011
+protocol: TCP
+- containerPort: 15012
+protocol: TCP
+- containerPort: 8060
+protocol: TCP
+- containerPort: 853
+protocol: TCP
+- containerPort: 15090
+name: http-envoy-prom
+protocol: TCP
+&lt;/code>&lt;/pre>&lt;ol start="2">
+&lt;li>Deploy Istio Gateway and VirtualService&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+name: tcp-echo-gateway
+spec:
+selector:
+istio: ingressgateway
+servers:
+- port:
+number: 32400
+name: tcp
+protocol: TCP
+hosts:
+- &amp;quot;*&amp;quot;
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+name: tcp-echo-destination
+spec:
+host: tcp-echo
+subsets:
+- name: v1
+labels:
+version: v1
+- name: v2
+labels:
+version: v2
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+name: tcp-echo
+spec:
+hosts:
+- &amp;quot;*&amp;quot;
+gateways:
+- tcp-echo-gateway
+tcp:
+- match:
+- port: 32400 ###########32400端口监听
+route:
+- destination:
+host: tcp-echo
+port:
+number: 9000
+subset: v1
+&lt;/code>&lt;/pre>&lt;ol start="3">
+&lt;li>After the deployment is complete, check envoy to confirm that the monitoring has been issued&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code> {
+&amp;quot;name&amp;quot;: &amp;quot;0.0.0.0_32400&amp;quot;,
+&amp;quot;address&amp;quot;: {
+&amp;quot;socketAddress&amp;quot;: {
+&amp;quot;address&amp;quot;: &amp;quot;0.0.0.0&amp;quot;,
+&amp;quot;portValue&amp;quot;: 32400
+}
+},
+&amp;quot;filterChains&amp;quot;: &amp;amp;#91;
+{
+&amp;quot;filters&amp;quot;: &amp;amp;#91;
+。。。。。。。。。。省略。。。。。。。。。。
+{
+&amp;quot;name&amp;quot;: &amp;quot;envoy.tcp_proxy&amp;quot;,
+&amp;quot;typedConfig&amp;quot;: {
+&amp;quot;@type&amp;quot;:
+。。。。。
+&amp;quot;cluster&amp;quot;: &amp;quot;outbound|9000|v1|tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local&amp;quot;,
+。。。。。
+}
+}
+]
+}
+],
+&amp;quot;trafficDirection&amp;quot;: &amp;quot;OUTBOUND&amp;quot;
+},
+&lt;/code>&lt;/pre>&lt;ol start="4">
+&lt;li>Modify the existing Ingressgateway svc, increase the external exposure of 32400 port&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>kubectl edit svc istio-ingressgateway -n istio-system -o yaml
+修改前：
+ports:
+- name: status-port
+nodePort: 31702
+port: 15020
+protocol: TCP
+targetPort: 15020
+- name: http2
+nodePort: 31547
+port: 80
+protocol: TCP
+targetPort: 8080
+- name: https
+nodePort: 31956
+port: 443
+protocol: TCP
+targetPort: 8443
+- name: tcp
+nodePort: 30775
+port: 31400
+protocol: TCP
+targetPort: 31400
+- name: tls
+nodePort: 30536
+port: 15443
+protocol: TCP
+targetPort: 15443
+selector:
+app: istio-ingressgateway
+istio: ingressgateway
+sessionAffinity: None
+type: LoadBalancer
+修改后：
+ports:
+- name: status-port
+nodePort: 31702
+port: 15020
+protocol: TCP
+targetPort: 15020
+- name: http2
+nodePort: 31547
+port: 80
+protocol: TCP
+targetPort: 8080
+- name: https
+nodePort: 31956
+port: 443
+protocol: TCP
+targetPort: 8443
+- name: tcp
+nodePort: 30775
+port: 31400
+protocol: TCP
+targetPort: 31400
+- name: tcp2
+nodePort: 30776
+port: 32400
+protocol: TCP
+targetPort: 32400 #########新增端口
+- name: tls
+nodePort: 30536
+port: 15443
+protocol: TCP
+targetPort: 15443
+root@k8s-master-v1-16 ~]# kubectl get svc -n istio-system
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+grafana ClusterIP 10.96.165.101 &amp;amp;lt;none&amp;gt; 3000/TCP 2d
+istio-egressgateway ClusterIP 10.110.88.185 &amp;amp;lt;none&amp;gt; 80/TCP,443/TCP,15443/TCP 2d
+istio-ingressgateway LoadBalancer 10.96.122.225 &amp;amp;lt;pending&amp;gt; 15020:31702/TCP,80:31547/TCP,443:31956/TCP,31400:30775/TCP,32400:30776/TCP,15443:30536/TCP 2d
+istiod ClusterIP 10.102.252.88 &amp;amp;lt;none&amp;gt; 15010/TCP,15012/TCP,443/TCP,15014/TCP,53/UDP,853/TCP 2d
+jaeger-agent ClusterIP None &amp;amp;lt;none&amp;gt; 5775/UDP,6831/UDP,6832/UDP 2d
+jaeger-collector ClusterIP 10.105.130.171 &amp;amp;lt;none&amp;gt; 14267/TCP,14268/TCP,14250/TCP 2d
+jaeger-collector-headless ClusterIP None &amp;amp;lt;none&amp;gt; 14250/TCP 2d
+jaeger-query ClusterIP 10.99.139.251 &amp;amp;lt;none&amp;gt; 16686/TCP 2d
+kiali ClusterIP 10.101.189.237 &amp;amp;lt;none&amp;gt; 20001/TCP 2d
+prometheus ClusterIP 10.109.157.108 &amp;amp;lt;none&amp;gt; 9090/TCP 2d
+tracing ClusterIP 10.101.62.56 &amp;amp;lt;none&amp;gt; 80/TCP 2d
+zipkin ClusterIP 10.98.181.246 &amp;amp;lt;none&amp;gt; 9411/TCP
+&lt;/code>&lt;/pre>&lt;ol start="5">
+&lt;li>Publish the 32400 servicePort to F5, at this time you need to add an F5 configmap, pay attention to the Chinese comments&lt;/li>
+&lt;/ol>
+&lt;pre>&lt;code>kind: ConfigMap
+apiVersion: v1
+metadata:
+name: istio-ingressgateway.32400.vs
+namespace: istio-system
+labels:
+f5type: virtual-server
+data:
+# See the f5-schema table for schema-controller compatibility
+# https://clouddocs.f5.com/containers/latest/releases_and_versioning.html#f5-schema
+schema: &amp;quot;f5schemadb://bigip-virtual-server_v0.1.7.json&amp;quot;
+data: |
+{
+&amp;quot;virtualServer&amp;quot;: {
+&amp;quot;backend&amp;quot;: {
+&amp;quot;serviceName&amp;quot;: &amp;quot;istio-ingressgateway&amp;quot;,
+&amp;quot;servicePort&amp;quot;: 32400
+####It is important here. The port of the corresponding k8s svc is filled in here. The F5 CIS controller will automatically find the targetPort (CIS cluster mode) or nodeport (CIS nodeport mode) corresponding to the servicePort
+},
+&amp;quot;frontend&amp;quot;: {
+&amp;quot;virtualAddress&amp;quot;: {
+&amp;quot;port&amp;quot;: 31400,
+&amp;quot;bindAddr&amp;quot;: &amp;quot;172.16.100.195&amp;quot;
+},
+&amp;quot;partition&amp;quot;: &amp;quot;k8s&amp;quot;,
+&amp;quot;balance&amp;quot;: &amp;quot;least-connections-member&amp;quot;,
+&amp;quot;mode&amp;quot;: &amp;quot;tcp&amp;quot;
+}
+}
+}
+&lt;/code>&lt;/pre>&lt;p>F5 will automatically generate the following configuration in the red box:&lt;/p>
+&lt;p>&lt;img src="https://www.cnadn.net/upload/2020/06/1592839169293-1024x418.jpg?v=1592839202" alt="F5 will automatically generate the following configuration in the red box:">&lt;/p>
+&lt;p>Simulate access to the business from the outside, you can see that it can be accessed normally&lt;/p>
+&lt;pre>&lt;code># jlin @ Mac in ~ &amp;amp;#91;myf5.net]
+$ for i in {1..2000}; do (date; sleep 1) | nc istiobookinfo.lab.f5se.io 32400; done
+one Mon Jun 22 22:24:17 CST 2020
+one Mon Jun 22 22:24:18 CST 2020
+one Mon Jun 22 22:24:19 CST 2020
+&lt;/code>&lt;/pre>&lt;p>At this point, the newly released service monitor on Istio Ingressgateway is successfully automatically posted to BIGIP. Users only need to access BIGIP&amp;rsquo;s VS to access services within k8s (on Istio Ingressgateway).&lt;/p>
+&lt;p>For the subsequent release of other new port services, repeat the above steps.&lt;/p>
+&lt;blockquote>
+&lt;p>Note: The above configuration uses the non-F5 AS3 configmap configuration method, if you are using CIS 2.0, you need to pay attention to this issue
+&lt;a href="https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341">https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://cnadn.net">https://cnadn.net&lt;/a>&lt;/p></description></item></channel></rss>
