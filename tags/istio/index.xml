@@ -1337,7 +1337,7 @@ addressPrefix can be matched. If the pod actually has multiple ports, only addre
 &amp;quot;trafficDirection&amp;quot;: &amp;quot;INBOUND&amp;quot;
 }
 ]
-&lt;/code>&lt;/pre>&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://cnadn.net">https://cnadn.net&lt;/a>&lt;/p></description></item><item><title>F5 BIG-IP links Istio to enhance ingress service capabilities</title><link>http://linjing.io/post/f5-istio-work-together/</link><pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-istio-work-together/</guid><description>&lt;p>In the Istio system, in order to ensure the unity of policy coordination and experience, users will consider using Istio&amp;rsquo;s own Ingressgateway as the entrance to north-south traffic. Ingressgateway is generally deployed by deployment of multiple pods, scattered on multiple nodes of the cluster, depending on Due to the specific exposure type, especially in on-prem deployment, it is still necessary to deploy relevant load balancers outside the k8s cluster to load balance these ingressgateways, on the one hand, it can avoid access difficulties and operation and maintenance difficulties caused by multiple entrances. On the other hand, the high-performance and high-reliability F5 BIGIP can provide more function control and security value-added services for k8s cluster entrance traffic, which is similar to the Ingress controller.&lt;/p>
+&lt;/code>&lt;/pre>&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://imesh.club">https://imesh.club&lt;/a>&lt;/p></description></item><item><title>F5 BIG-IP links Istio to enhance ingress service capabilities</title><link>http://linjing.io/post/f5-istio-work-together/</link><pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-istio-work-together/</guid><description>&lt;p>In the Istio system, in order to ensure the unity of policy coordination and experience, users will consider using Istio&amp;rsquo;s own Ingressgateway as the entrance to north-south traffic. Ingressgateway is generally deployed by deployment of multiple pods, scattered on multiple nodes of the cluster, depending on Due to the specific exposure type, especially in on-prem deployment, it is still necessary to deploy relevant load balancers outside the k8s cluster to load balance these ingressgateways, on the one hand, it can avoid access difficulties and operation and maintenance difficulties caused by multiple entrances. On the other hand, the high-performance and high-reliability F5 BIGIP can provide more function control and security value-added services for k8s cluster entrance traffic, which is similar to the Ingress controller.&lt;/p>
 &lt;p>Unlike exposing ordinary service svc to external BIG-IP, ingressgateway itself is a collection point of various service ports. It may itself listen to many ports, so it is not easy to treat ingressgateway as a single ordinary svc. This article mainly explains how to combine Istio ingressgateway with BIG-IP to enhance the entrance business capability.&lt;/p>
 &lt;p>The possible methods on the network structure are:&lt;/p>
 &lt;p>External load balancer &amp;mdash; access to &amp;ndash;&amp;gt; ingressgateway&amp;rsquo;s nodeport port&lt;/p>
@@ -1579,7 +1579,7 @@ data: |
 }
 }
 &lt;/code>&lt;/pre>&lt;p>F5 will automatically generate the following configuration in the red box:&lt;/p>
-&lt;p>&lt;img src="https://www.cnadn.net/upload/2020/06/1592839169293-1024x418.jpg?v=1592839202" alt="F5 will automatically generate the following configuration in the red box:">&lt;/p>
+&lt;p>&lt;img src="https://imesh.club/upload/2020/06/1592839169293-1024x418.jpg?v=1592839202" alt="F5 will automatically generate the following configuration in the red box:">&lt;/p>
 &lt;p>Simulate access to the business from the outside, you can see that it can be accessed normally&lt;/p>
 &lt;pre>&lt;code># jlin @ Mac in ~ &amp;amp;#91;myf5.net]
 $ for i in {1..2000}; do (date; sleep 1) | nc istiobookinfo.lab.f5se.io 32400; done
@@ -1592,4 +1592,4 @@ one Mon Jun 22 22:24:19 CST 2020
 &lt;p>Note: The above configuration uses the non-F5 AS3 configmap configuration method, if you are using CIS 2.0, you need to pay attention to this issue
 &lt;a href="https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341">https://github.com/F5Networks/k8s-bigip-ctlr/issues/1341&lt;/a>&lt;/p>
 &lt;/blockquote>
-&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://cnadn.net">https://cnadn.net&lt;/a>&lt;/p></description></item></channel></rss>
+&lt;p>Check more istio practice detail at my tech blog &lt;a href="https://imesh.club">https://imesh.club&lt;/a>&lt;/p></description></item></channel></rss>
