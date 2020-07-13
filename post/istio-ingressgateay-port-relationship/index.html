@@ -1,0 +1,137 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Source Themes Academia 4.3.1"><meta name=generator content="Hugo 0.73.0"><meta name=author content="Jing Lin (林静)"><meta name=description content="Dont set wrong port in Gateway."><link rel=alternate hreflang=en-us href=http://linjing.io/post/istio-ingressgateay-port-relationship/><meta name=theme-color content="#3f51b5"><link rel=stylesheet href=https://cdn.bootcdn.net/ajax/libs/academicons/1.8.6/css/academicons.min.css integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin=anonymous><link rel=stylesheet href=https://use.fontawesome.com/releases/v5.6.0/css/all.css integrity=sha384-aOkxzJ5uQz7WBObEZcHvV5JvRW3TUc2rNPA7pe3AwnsUohiw1Vj2Rgx2KSOkF5+h crossorigin=anonymous><link rel=stylesheet href=https://cdn.bootcdn.net/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css integrity="sha256-ygkqlh3CYSUri3LhQxzdcm0n1EQvH2Y+U5S2idbLtxs=" crossorigin=anonymous><link rel=stylesheet href=https://cdn.bootcdn.net/ajax/libs/highlight.js/9.15.6/styles/github.min.css crossorigin=anonymous title=hl-light><link rel=stylesheet href=https://cdn.bootcdn.net/ajax/libs/highlight.js/9.15.6/styles/dracula.min.css crossorigin=anonymous title=hl-dark disabled><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Lato:400,700|Open+Sans|Roboto+Mono&display=swap"><link rel=stylesheet href=/css/academia.min.bcef5eaccde0f18047d8dcec72cc428c.css><link rel=manifest href=/site.webmanifest><link rel=icon type=image/png href=/img/icon.png><link rel=apple-touch-icon type=image/png href=/img/icon-192.png><link rel=canonical href=http://linjing.io/post/istio-ingressgateay-port-relationship/><meta property="twitter:card" content="summary"><meta property="og:site_name" content="Jing Lin‘s profile"><meta property="og:url" content="http://linjing.io/post/istio-ingressgateay-port-relationship/"><meta property="og:title" content="The rule of Istio Gateway port definition | Jing Lin‘s profile"><meta property="og:description" content="Dont set wrong port in Gateway."><meta property="og:image" content="http://linjing.io/img/icon-192.png"><meta property="twitter:image" content="http://linjing.io/img/icon-192.png"><meta property="og:locale" content="en-us"><meta property="article:published_time" content="2020-07-13T00:00:00+00:00"><meta property="article:modified_time" content="2020-07-13T23:25:40+08:00"><title>The rule of Istio Gateway port definition | Jing Lin‘s profile</title></head><body id=top data-spy=scroll data-target=#TableOfContents data-offset=71><aside class=search-results id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class=col-6><h1>Search</h1></div><div class="col-6 col-search-close"><a class=js-search href=#><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box><input name=q id=search-query placeholder=Search... autocapitalize=off autocomplete=off autocorrect=off role=textbox spellcheck=false type=search></div></section><section class=section-search-results><div id=search-hits></div></section></div></aside><nav class="navbar navbar-light fixed-top navbar-expand-lg py-0" id=navbar-main><div class=container><a class=navbar-brand href=/>Jing Lin‘s profile</a>
+<button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar aria-controls=navbar aria-expanded=false aria-label="Toggle navigation"><span><i class="fas fa-bars"></i></span></button><div class="collapse navbar-collapse" id=navbar><ul class="navbar-nav ml-auto"><li class=nav-item><a class=nav-link href=/#about><span>Home</span></a></li><li class=nav-item><a class=nav-link href=/#posts><span>Posts</span></a></li><li class=nav-item><a class=nav-link href=/#skills><span>Skills</span></a></li><li class=nav-item><a class=nav-link href=/#talks><span>Talks</span></a></li><li class=nav-item><a class=nav-link href=/#accomplishments><span>Accomplishments</span></a></li><li class=nav-item><a class=nav-link href=/#publications><span>Publications</span></a></li><li class=nav-item><a class=nav-link href=/#experience><span>Experience</span></a></li><li class=nav-item><a class="nav-link active" href=/><span>Courses</span></a></li><li class=nav-item><a class=nav-link href=/#slider><span>Customers</span></a></li><li class=nav-item><a class=nav-link href=/#contact><span>Contact</span></a></li><li class=nav-item><a class="nav-link js-search" href=#><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class="nav-link js-dark-toggle" href=#><i class="fas fa-moon" aria-hidden=true></i></a></li></ul></div></div></nav><article class="article py-5" itemscope itemtype=http://schema.org/Article><div class="article-container py-3"><h1 itemprop=name>The rule of Istio Gateway port definition</h1><p class=page-subtitle>Translate by google</p><meta content="2020-07-13 00:00:00 +0000 UTC" itemprop=datePublished><meta content="2020-07-13 23:25:40 +0800 +0800" itemprop=dateModified><div class=article-metadata><div><span itemprop="author name" itemtype=http://schema.org/Person><a href=/authors/admin/>Jing Lin (林静)</a></span></div><span class=article-date>Last updated on
+<time>Jul 13, 2020</time></span>
+<span class=middot-divider></span><span class=article-reading-time>4 min read</span>
+<span class=middot-divider></span><a href=/post/istio-ingressgateay-port-relationship/#disqus_thread></a><div class=share-box aria-hidden=true><ul class=share><li><a href="https://twitter.com/intent/tweet?url=http://linjing.io/post/istio-ingressgateay-port-relationship/&text=The%20rule%20of%20Istio%20Gateway%20port%20definition" target=_blank rel=noopener class=share-btn-twitter><i class="fab fa-twitter"></i></a></li><li><a href="https://www.facebook.com/sharer.php?u=http://linjing.io/post/istio-ingressgateay-port-relationship/&t=The%20rule%20of%20Istio%20Gateway%20port%20definition" target=_blank rel=noopener class=share-btn-facebook><i class="fab fa-facebook-f"></i></a></li><li><a href="mailto:?subject=The%20rule%20of%20Istio%20Gateway%20port%20definition&body=http://linjing.io/post/istio-ingressgateay-port-relationship/" target=_blank rel=noopener class=share-btn-email><i class="fas fa-envelope"></i></a></li><li><a href="https://www.linkedin.com/shareArticle?url=http://linjing.io/post/istio-ingressgateay-port-relationship/&title=The%20rule%20of%20Istio%20Gateway%20port%20definition" target=_blank rel=noopener class=share-btn-linkedin><i class="fab fa-linkedin-in"></i></a></li><li><a href="https://web.whatsapp.com/send?text=The%20rule%20of%20Istio%20Gateway%20port%20definition%20http://linjing.io/post/istio-ingressgateay-port-relationship/" target=_blank rel=noopener class=share-btn-whatsapp><i class="fab fa-whatsapp"></i></a></li><li><a href="https://service.weibo.com/share/share.php?url=http://linjing.io/post/istio-ingressgateay-port-relationship/&title=The%20rule%20of%20Istio%20Gateway%20port%20definition" target=_blank rel=noopener class=share-btn-weibo><i class="fab fa-weibo"></i></a></li></ul></div></div></div></div></div><div class=article-container><div class=article-style itemprop=articleBody><p>The port and protocol in the Gateway resource define the listener port and protocol in ingressgateway (envoy).</p><p>However, the port in Gateway can be set to the port or targetPort of the ingressgateway svc, and finally the targetPort is used in envoy.</p><p>For example below, the port is defined as 443 in Gateway:</p><pre><code>apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  namespace: istio-bookinfo
+  name: bookinfo-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 8080  
+      name: http
+      protocol: HTTP 
+    hosts:
+    - &quot;*&quot;
+  - port:
+      number: 443 #####use for assembling the route name that under the listener
+      name: https #####use for assembling the route name that under the listener
+      protocol: HTTPS #####use for assembling the route name that under the listener
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+      privateKey: /etc/istio/ingressgateway-certs/tls.key
+    hosts:
+    - &quot;*&quot;
+</code></pre><p>While, when you check the envoy configurations, the listener port actually is 8443</p><pre><code>[root@k8s-master-v1-16 networking]# istioctl proxy-config listener istio-ingressgateway-7b869dcfb5-lfqz9.istio-system --port 8443 -o json
+[
+    {
+        &quot;name&quot;: &quot;0.0.0.0_8443&quot;,
+        &quot;address&quot;: {
+            &quot;socketAddress&quot;: {
+                &quot;address&quot;: &quot;0.0.0.0&quot;,
+                &quot;portValue&quot;: 8443 《《《《《8443！！
+            }
+        },
+        &quot;filterChains&quot;: [
+            {
+                &quot;filters&quot;: [
+                    {
+                        &quot;name&quot;: &quot;envoy.http_connection_manager&quot;,
+                        &quot;typedConfig&quot;: {
+                            &quot;@type&quot;: &quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&quot;,
+                            &quot;statPrefix&quot;: &quot;outbound_0.0.0.0_8443&quot;,
+                            &quot;rds&quot;: {
+                                &quot;configSource&quot;: {
+                                    &quot;ads&quot;: {}
+                                },
+                                ###The route name is assembled by protocol + port number + portname, Note here: use 443,not 8443
+                                &quot;routeConfigName&quot;: &quot;https.443.https.bookinfo-gateway.istio-bookinfo&quot;
+                            },
+</code></pre><p>This is because the ingressgateway&rsquo;s 443 svc port is corresponding to targetPort 8443:</p><pre><code> - name: https
+    nodePort: 30975
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+</code></pre><p>If the port is defined as 8443 in the gateway, the result is same, will generate 8443 listener in envoy.</p><p>When there is only one gateway definition, it is ok to use port or the corresponding targetport of the ingressgateway, both will get the same listener port in evnoy lastly. But please be noted, if there are multiple gateway definitions and set same protocol, then the port in the gateways must be same. Otherwise, the listener will only associate the routeConfigName generated by the gateway that created afterwards, and the associated route will not contain the virtualservice logic that related to the first created gateway.</p><p>For example, configure HTTP:8080 in the gateway in the istio-bookinfo namespace (the svc 80 of ingressgateway corresponds to the 8080 of the pod):</p><pre><code>apiVersion: v1
+items:
+ 
+  spec:
+    selector:
+      istio: ingressgateway
+    servers:
+    - hosts:
+      - '*'
+      port:
+        name: http
+        number: 8080
+        protocol: HTTP
+    - hosts:
+      - istiobookinfo.lab.f5se.io
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+</code></pre><p>The gateway in the httpbin namespace configures HTTP：80，</p><pre><code>[root@k8s-master-v1-16 httpbin]# kubectl get gateways.networking.istio.io -n httpbin -o yaml
+apiVersion: v1
+items:
+ 
+  spec:
+    selector:
+      istio: ingressgateway
+    servers:
+    - hosts:
+      - httpbin.lab.f5se.io
+      port:
+        name: http-httpbin
+        number: 80
+        protocol: HTTP
+</code></pre><p>This leads to the fact that the envoy listener is actually actually associated with the later created http.80 route:</p><pre><code>[root@k8s-master-v1-16 ~]# istioctl proxy-config listener istio-ingressgateway-7b869dcfb5-gh2vr.istio-system --port 8080 -o json
+[
+    {
+        &quot;name&quot;: &quot;0.0.0.0_8080&quot;,
+        &quot;address&quot;: {
+            &quot;socketAddress&quot;: {
+                &quot;address&quot;: &quot;0.0.0.0&quot;,
+                &quot;portValue&quot;: 8080
+            }
+        },
+        &quot;filterChains&quot;: [
+            {
+                &quot;filters&quot;: [
+                    {
+                        &quot;name&quot;: &quot;envoy.http_connection_manager&quot;,
+                        &quot;typedConfig&quot;: {
+                            &quot;@type&quot;: &quot;type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager&quot;,
+                            &quot;statPrefix&quot;: &quot;outbound_0.0.0.0_8080&quot;,
+                            &quot;rds&quot;: {
+                                &quot;configSource&quot;: {
+                                    &quot;ads&quot;: {}
+                                },
+                                &quot;routeConfigName&quot;: &quot;http.80&quot;
+</code></pre><p>Therefore, in these multi gateways configuration, which ultimately shares the listener port, the port number and protocol name need to be the same (BEST practice is using the port number that envoy actually listens to), but the port must be named differently (if the port name is the same, envoy will show the conflicting configuration logs):</p><pre><code>2020-07-10T09:56:26.192152Z	warning	envoy config	[external/envoy/source/common/config/grpc_subscription_impl.cc:101] gRPC config for type.googleapis.com/envoy.api.v2.Listener rejected: 
+Error adding/updating listener(s) 0.0.0.0_8080: duplicate listener 0.0.0.0_8080 found
+</code></pre><p>Gateways with the same protocol and the same port, no matter whether they are in the same namespace, can only share one listener in envoy, so they will also share same route. If you accidentally configure the same virtualservice under different namespaces at this time, it will cause envoy to generate two identical match conditions in the same route (and the associated cluster is different namespace suffix, This resulting in abnormal access)</p><p>Check more istio practice detail at my tech blog <a href=https://imesh.club>https://imesh.club</a></p></div><div class=article-tags><a class="badge badge-light" href=/tags/istio/>istio</a>
+<a class="badge badge-light" href=/tags/envoy/>envoy</a>
+<a class="badge badge-light" href=/tags/gateway-port/>gateway port</a>
+<a class="badge badge-light" href=/tags/ingressgateway/>ingressgateway</a></div><div class="media author-card" itemscope itemtype=http://schema.org/Person><div class=media-body><h5 class=card-title itemprop=name><a href=http://linjing.io/>Jing Lin (林静)</a></h5><h6 class=card-subtitle>Solution Architect@F5</h6><p class=card-text itemprop=description>Check my tech blog for more <a href=https://imesh.club>https://imesh.club</a></p><ul class=network-icon aria-hidden=true></ul></div></div><div class=article-widget><div class=hr-light></div><h3>Related</h3><ul><li><a href=/publication/envoy-2020-6/>What changes does envoy bring to ADN</a></li><li><a href=/post/istio-traffic-control-deepdive/>Istio sidecar iptables and traffic steering detail</a></li><li><a href=/post/f5-istio-work-together/>F5 BIG-IP links Istio to enhance ingress service capabilities</a></li><li><a href=/post/f5-envoy-cloud-native/>How an application delivery veteran see Envoy in the era of cloud native</a></li></ul></div><section id=comments><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"linjingio"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><script src=https://cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin=anonymous></script><script src=https://cdn.bootcdn.net/ajax/libs/jquery.imagesloaded/4.1.4/imagesloaded.pkgd.min.js integrity="sha256-lqvxZrPLtfffUl2G/e7szqSvPBILGbwmsGE1MKlOi0Q=" crossorigin=anonymous></script><script src=https://cdn.bootcdn.net/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.min.js integrity="sha256-CBrpuqrMhXwcLLUd5tvQ4euBHCdh7wGlDfNz8vbu/iI=" crossorigin=anonymous></script><script src=https://cdn.bootcdn.net/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js integrity="sha256-X5PoE3KU5l+JcX+w09p/wHl9AzK333C4hJ2I9S5mD4M=" crossorigin=anonymous></script><script src=https://cdn.bootcdn.net/ajax/libs/highlight.js/9.15.6/highlight.min.js integrity="sha256-aYTdUrn6Ow1DDgh5JTc3aDGnnju48y/1c8s1dgkYPQ8=" crossorigin=anonymous></script><script id=dsq-count-scr src=//linjingio.disqus.com/count.js async></script><script>hljs.initHighlightingOnLoad();</script><script>const search_index_filename="/index.json";const i18n={'placeholder':"Search...",'results':"results found",'no_results':"No results found"};const content_type={'post':"Posts",'project':"Projects",'publication':"Publications",'talk':"Talks"};</script><script id=search-hit-fuse-template type=text/x-template>
+      <div class="search-hit" id="summary-{{key}}">
+      <div class="search-hit-content">
+        <div class="search-hit-name">
+          <a href="{{relpermalink}}">{{title}}</a>
+          <div class="article-metadata search-hit-type">{{type}}</div>
+          <p class="search-hit-description">{{snippet}}</p>
+        </div>
+      </div>
+      </div>
+    </script><script src=https://cdn.bootcdn.net/ajax/libs/fuse.js/3.2.1/fuse.min.js integrity="sha256-VzgmKYmhsGNNN4Ph1kMW+BjoYJM2jV5i4IlFoeZA9XI=" crossorigin=anonymous></script><script src=https://cdn.bootcdn.net/ajax/libs/mark.js/8.11.1/jquery.mark.min.js integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin=anonymous></script><script src=/js/academia.min.e4fc229c2f28284fc2dfa5b66a52b765.js></script><div class=container><footer class=site-footer><div class=container><div class=row><div class=col-md-6><p>Copyright © 2020 linjing.io host on github, imesh.cloud host on netlify. CI/CD by github actions and netlify.Thanks bootcdn support for front libary CDN &#183;
+Powered by
+<a href=https://themefisher.com target=_blank rel=noopener>themefisher</a> for
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a>.</p></div><div class=col-md-6><ul class="list-inline network-icon text-right"><li class=list-inline-item><a href=https://github.com/myf5 target=_blank rel=noopener title=Github><i class="fab fa-github" aria-hidden=true></i></a></li><li class=list-inline-item><a href=https://www.linkedin.com/in/jing-lin-218b3915/ target=_blank rel=noopener title=Linkedin><i class="fab fa-linkedin" aria-hidden=true></i></a></li><li class=list-inline-item><a href=https://imesh.club target=_blank rel=noopener title="My blog"><i class="fab fa-wordpress" aria-hidden=true></i></a></li></ul></div></div></div></footer></div><div id=modal class="modal fade" role=dialog><div class=modal-dialog><div class=modal-content><div class=modal-header><h5 class=modal-title>Cite</h5><button type=button class=close data-dismiss=modal aria-label=Close>
+<span aria-hidden=true>&#215;</span></button></div><div class=modal-body><pre><code class="tex hljs"></code></pre></div><div class=modal-footer><a class="btn btn-outline-primary my-1 js-copy-cite" href=# target=_blank><i class="fas fa-copy"></i>Copy</a>
+<a class="btn btn-outline-primary my-1 js-download-cite" href=# target=_blank><i class="fas fa-download"></i>Download</a><div id=modal-error></div></div></div></div></div></body></html>
