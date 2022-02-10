@@ -1,4 +1,76 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>F5 on Jing Lin‘s profile</title><link>http://linjing.io/tags/f5/</link><description>Recent content in F5 on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>Copyright &amp;copy; {year} linjing.io host on github, imesh.cloud host on netlify. CI/CD by github actions and netlify.Thanks bootcdn support for front libary CDN</copyright><lastBuildDate>Thu, 30 Sep 2021 00:00:00 +0000</lastBuildDate><atom:link href="http://linjing.io/tags/f5/index.xml" rel="self" type="application/rss+xml"/><item><title>To implement cloud native, you need such an infrastructure</title><link>http://linjing.io/post/f5-cloudnative-media-interview-zhiding/</link><pubDate>Thu, 30 Sep 2021 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-cloudnative-media-interview-zhiding/</guid><description>&lt;h1 id="to-implement-cloud-native-you-need-such-an-infrastructure">To implement cloud native, you need such an infrastructure&lt;/h1>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>F5 on Jing Lin‘s profile</title><link>http://linjing.io/tags/f5/</link><description>Recent content in F5 on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>Copyright &amp;copy; {year} linjing.io host on github, imesh.cloud host on netlify. CI/CD by github actions and netlify.Thanks bootcdn support for front libary CDN</copyright><lastBuildDate>Tue, 01 Feb 2022 00:00:00 +0000</lastBuildDate><atom:link href="http://linjing.io/tags/f5/index.xml" rel="self" type="application/rss+xml"/><item><title>Container Egress Service(CES)</title><link>http://linjing.io/post/f5-container-egress-service-ces/</link><pubDate>Tue, 01 Feb 2022 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-container-egress-service-ces/</guid><description>&lt;h2 id="solution-architecture">Solution architecture&lt;/h2>
+&lt;h3 id="components">Components&lt;/h3>
+&lt;p>The CES solution includes the following components:&lt;/p>
+&lt;ul>
+&lt;li>CES controller: a container running in k8s. This component is the control plane, responsible for converting the outbound policies that deployed in k8s into the external data plane component(here is F5 AFM).&lt;/li>
+&lt;li>F5 BIG-IP AFM: Data plane components running outside of k8s. Accept the configuration issued by the CES controller and execute specific access control rules, such as access control lists, bandwidth limiting, traffic programming, etc.&lt;/li>
+&lt;li>CNI: CNI is a choice of the user environment itself and is not included in the CES plan. However, different CNIs will have different effects on the functions of the CES solution. Use &lt;a href="https://github.com/kubeovn/kube-ovn/">kube-ovn&lt;/a> CNI to get the full functionality of CES.&lt;/li>
+&lt;/ul>
+&lt;h3 id="architecture-diagram">Architecture diagram&lt;/h3>
+&lt;p>&lt;img src="img/high-level-arch.jpg" alt="high-level-arch">&lt;/p>
+&lt;h3 id="policy-scope-and-role">Policy scope and role&lt;/h3>
+&lt;p>CES provides three policy scopes &lt;code>cluster global&lt;/code> &lt;code>namespace&lt;/code> and &lt;code>service&lt;/code>. Its meaning and user role relationship are as follows:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>scope&lt;/th>
+&lt;th>meaning&lt;/th>
+&lt;th>Adaptation role&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>Cluster global&lt;/td>
+&lt;td>It is the global level policy of the cluster, which is used to control the general and overall access control of the cluster. For example, the cluster&amp;rsquo;s access to basic public services such as NTP and DNS of the enterprise. The scope policy is applied to the outbound access control of all services in the cluster.&lt;/td>
+&lt;td>Cluster administrator, Security team&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>namespace&lt;/td>
+&lt;td>This policy level is effective for a single namespace or project. It is used to control the access of all services in specific NS or project to access the services out of the cluster. Policies in different namespaces or projects do not affect each other. *This function requires the support of CNI.&lt;/td>
+&lt;td>Project team, application operation team&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>service level&lt;/td>
+&lt;td>The policy control the k8s servcies to the external services. Only valid for specific services. So if the CNI can not support namespace level policy, set svc level policy is an alternative way.&lt;/td>
+&lt;td>Project team, application operation, microservice owner&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="tenant-isolation">Tenant isolation&lt;/h3>
+&lt;p>The CES solution supports strong isolation of &lt;code>network + namespace&lt;/code>. Supports the administrative isolation of configuration objects on the data plane, and also supports strict traffic isolation at the network level. Support different namespaces to use overlapping CIDR.&lt;/p>
+&lt;pre>&lt;code>Need CNI support network isolation. For example kube-ovn's per ns subnet
+&lt;/code>&lt;/pre>&lt;h2 id="solution-value">Solution value&lt;/h2>
+&lt;h3 id="challenges-solved">Challenges solved&lt;/h3>
+&lt;ul>
+&lt;li>High-frequency changes in outbound traffic caused by container IP dynamics&lt;/li>
+&lt;li>Different role groups have different requirements for the scope setting of the policy, and the policy needs to match the role in multiple dimensions&lt;/li>
+&lt;li>Dynamic bandwidth limit requirements for outbound traffic&lt;/li>
+&lt;li>Protocol in-depth security inspection requirements&lt;/li>
+&lt;li>Advanced requirements for flow programmable based on access control events&lt;/li>
+&lt;li>Visualization requirements for outbound traffic&lt;/li>
+&lt;/ul>
+&lt;h3 id="provided-capabilities">Provided capabilities&lt;/h3>
+&lt;ul>
+&lt;li>Dynamic IP ACL control with Cluster/Pod/NS granularity&lt;/li>
+&lt;li>Cluster/Pod/NS granular FQDN ACL control&lt;/li>
+&lt;li>Time-based access control&lt;/li>
+&lt;li>Matched flow event trigger and programmable&lt;/li>
+&lt;li>Matched traffic redirection&lt;/li>
+&lt;li>Protocol security and compliance testing&lt;/li>
+&lt;li>IP intelligence&lt;/li>
+&lt;li>Traffic matching log&lt;/li>
+&lt;li>Traffic matching visualization report&lt;/li>
+&lt;li>Protocol detection visual report&lt;/li>
+&lt;li>TCP/IP Errors report&lt;/li>
+&lt;li>NAT control and logging&lt;/li>
+&lt;li>Data flow visualization tracking&lt;/li>
+&lt;li>Visual simulation of access rules&lt;/li>
+&lt;li>Transparent detection mode&lt;/li>
+&lt;li>High-speed log outgoing&lt;/li>
+&lt;/ul>
+&lt;pre>&lt;code>Partial functions will evolve along with version iterations
+&lt;/code>&lt;/pre>&lt;p>&lt;strong>Next step:&lt;/strong>&lt;/p>
+&lt;p>&lt;a href="https://github.com/f5devcentral/container-egress-service/wiki/EN_2_CES_Installation">Understanding CES installation&lt;/a>&lt;/p></description></item><item><title>To implement cloud native, you need such an infrastructure</title><link>http://linjing.io/post/f5-cloudnative-media-interview-zhiding/</link><pubDate>Thu, 30 Sep 2021 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-cloudnative-media-interview-zhiding/</guid><description>&lt;h1 id="to-implement-cloud-native-you-need-such-an-infrastructure">To implement cloud native, you need such an infrastructure&lt;/h1>
 &lt;p>When a ten thousand zhang tall building starts from the ground, only when the foundation piles are deeply driven and the cornerstones are firmly laid, can the building be built higher and more stable. Digital transformation is not the case - all kinds of system applications at the top layer are ultimately inseparable from the support of the underlying infrastructure. It&amp;rsquo;s just that this base must change according to needs and times, instead of building a &amp;ldquo;pillar&amp;rdquo; and building a &amp;ldquo;building&amp;rdquo;.&lt;/p>
 &lt;p>Take cloud native applications that are very popular right now, if they are also built on the centralized and complex traditional infrastructure, it is equivalent to &amp;ldquo;new wine in old bottles&amp;rdquo;, and accidentally &amp;ldquo;sprinkled wine in a bottle&amp;rdquo;. Get busy.&lt;/p>
 &lt;p>In this regard, Lin Jing, senior solution architect of F5 Networks, said in an interview with a reporter from Zhiding.com that the unique characteristics of cloud-native applications such as flexibility, agility, and simplification have put forward many new requirements for enterprise IT architecture. In three aspects: First, the orchestration of IT service capabilities. Since IT services are abstracted into various atomic services, this puts forward higher requirements for enterprises in event-based automation and operation and maintenance data capability mining; second, the IT architecture is flattened. More and more assembleable architectures are integrated into the underlying network system, which will weaken the previous network-centric thinking, and the capabilities of the platform will become more and more important; third, IT talents are mixed. Talent lines are no longer bounded by obvious networks, systems, etc., and technology-mixed talents will be increasingly strengthened in the scenario of IT architecture platformization.&lt;/p>
