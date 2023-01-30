@@ -1,4 +1,41 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>F5 on Jing Lin‘s profile</title><link>http://linjing.io/tags/f5/</link><description>Recent content in F5 on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>Copyright &amp;copy; {year} linjing.io host on github, imesh.cloud host on netlify. CI/CD by github actions and netlify.Thanks bootcdn support for front libary CDN</copyright><lastBuildDate>Tue, 01 Feb 2022 00:00:00 +0000</lastBuildDate><atom:link href="http://linjing.io/tags/f5/index.xml" rel="self" type="application/rss+xml"/><item><title>Project- Container Egress Service(CES)</title><link>http://linjing.io/post/f5-container-egress-service-ces/</link><pubDate>Tue, 01 Feb 2022 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-container-egress-service-ces/</guid><description>&lt;h2 id="solution-architecture">Solution architecture&lt;/h2>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>F5 on Jing Lin‘s profile</title><link>http://linjing.io/tags/f5/</link><description>Recent content in F5 on Jing Lin‘s profile</description><generator>Source Themes academia (https://sourcethemes.com/academic/)</generator><language>en-us</language><copyright>Copyright &amp;copy; {year} linjing.io host on github, imesh.cloud host on netlify. CI/CD by github actions and netlify.Thanks bootcdn support for front libary CDN</copyright><lastBuildDate>Mon, 30 Jan 2023 00:00:00 +0000</lastBuildDate><atom:link href="http://linjing.io/tags/f5/index.xml" rel="self" type="application/rss+xml"/><item><title>Project- BIG-IP K8S Gateway API</title><link>http://linjing.io/post/big-ip-gateway-api/</link><pubDate>Mon, 30 Jan 2023 00:00:00 +0000</pubDate><guid>http://linjing.io/post/big-ip-gateway-api/</guid><description>&lt;h2 id="name">Name&lt;/h2>
+&lt;p>&lt;strong>Product Name&lt;/strong>: BIG-IP Kubernetes Gateway Controller&lt;/p>
+&lt;p>&lt;strong>Code Name&lt;/strong>: bigip-kubernetes-gateway&lt;/p>
+&lt;h2 id="description">Description&lt;/h2>
+&lt;p>&lt;a href="https://gateway-api.sigs.k8s.io/">&lt;strong>Gateway API&lt;/strong>&lt;/a> is an open source project managed by the SIG-NETWORK community. It is a collection of resources that model service networking in Kubernetes. These resources - GatewayClass,Gateway, HTTPRoute, TCPRoute, Service, etc - aim to evolve Kubernetes service networking through expressive, extensible, and role-oriented interfaces that are implemented by many vendors and have broad industry support.&lt;/p>
+&lt;p>&lt;strong>F5 BIG-IP kubernetes Gateway&lt;/strong> is an implementation of Kubernetes Gateway API. It uses F5 BIG-IP as the &lt;a href="https://gateway-api.sigs.k8s.io/implementations/">downstream implementation and integration&lt;/a>.&lt;/p>
+&lt;p>See &lt;a href="https://gateway-api.f5se.io">https://gateway-api.f5se.io&lt;/a> for more information.&lt;/p>
+&lt;p>Source code repository: &lt;a href="https://github.com/f5devcentral/bigip-kubernetes-gateway">https://github.com/f5devcentral/bigip-kubernetes-gateway&lt;/a>.&lt;/p>
+&lt;h2 id="quick-view">Quick view&lt;/h2>
+&lt;p>BIG-IP Kubernetes Gatewway enables the conversion of GatewayAPI resources to BIG-IP ADC capabilities automatically:&lt;/p>
+&lt;p>&lt;a href="">&lt;img src="img/bigip-k8s-gateway-resource-mapping.png" alt="image">&lt;/a>&lt;/p>
+&lt;h2 id="code">Code&lt;/h2>
+&lt;p>&lt;a href="https://github.com/f5devcentral/bigip-kubernetes-gateway/tree/master">Github f5devcentral&lt;/a>&lt;/p>
+&lt;h2 id="installation">Installation&lt;/h2>
+&lt;p>The installation process is simple, see &lt;a href="https://gateway-api.f5se.io/quick-start/">https://gateway-api.f5se.io/quick-start/&lt;/a> for details.&lt;/p>
+&lt;h2 id="usage">Usage&lt;/h2>
+&lt;p>As the quick getstart, see &lt;a href="https://gateway-api.f5se.io/Use-Cases/simple-gateway/">https://gateway-api.f5se.io/Use-Cases/simple-gateway/&lt;/a>.&lt;/p>
+&lt;h2 id="support">Support&lt;/h2>
+&lt;p>For support, please open a &lt;a href="https://github.com/f5devcentral/bigip-kubernetes-gateway/issues">GitHub issue&lt;/a>. Note, the code in this repository is community supported and is not supported by F5.&lt;/p>
+&lt;p>Maintenance and F5 Technical Support of this F5 code is provided only if the software (i) is unmodified; and (ii) has been marked as F5 Supported in SOL80012344, (&lt;a href="https://support.f5.com/csp/article/K80012344)">https://support.f5.com/csp/article/K80012344)&lt;/a>.&lt;/p>
+&lt;p>Support will only be provided to customers who have an existing BIG-IP support contract associated with a valid BIG-IP serial number. For information about support policies, see &lt;a href="http://www.f5.com/about/guidelines-policies/">http://www.f5.com/about/guidelines-policies/&lt;/a> and &lt;a href="http://askf5.com">http://askf5.com&lt;/a>.&lt;/p>
+&lt;h2 id="roadmap">Roadmap&lt;/h2>
+&lt;p>The bigip-kubernetes-gateway versions are released on dockerhub as &lt;a href="https://hub.docker.com/r/f5devcentral/bigip-kubernetes-gateway/tags">Docker images&lt;/a>.&lt;/p>
+&lt;p>For a list of supported Gateway API resources and features, see the &lt;a href="https://github.com/f5devcentral/bigip-kubernetes-gateway/blob/master/docs/gateway-api-compatibility.md">Gateway API Compatibility&lt;/a> doc. Check &lt;a href="https://github.com/kubernetes-sigs/gateway-api#status">here&lt;/a> for Gateway API&amp;rsquo;s latest status.&lt;/p>
+&lt;h2 id="contributing">Contributing&lt;/h2>
+&lt;p>We are open to contributions, if&lt;/p>
+&lt;ul>
+&lt;li>you are interested in participating in our project and&lt;/li>
+&lt;li>you have experience in kubernetes and golang development,&lt;/li>
+&lt;li>BIG-IP related applications or development experience is preferred.&lt;/li>
+&lt;/ul>
+&lt;h2 id="authors-and-acknowledgment">Authors and acknowledgment&lt;/h2>
+&lt;p>Contributors for now：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/zongzw">zongzw f5zong&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/Niklaus-xie">Niklaus-xie&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/myf5">myf5 Jing Lin&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>Project- Container Egress Service(CES)</title><link>http://linjing.io/post/f5-container-egress-service-ces/</link><pubDate>Tue, 01 Feb 2022 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-container-egress-service-ces/</guid><description>&lt;h2 id="solution-architecture">Solution architecture&lt;/h2>
 &lt;h3 id="components">Components&lt;/h3>
 &lt;p>The CES solution includes the following components:&lt;/p>
 &lt;ul>
