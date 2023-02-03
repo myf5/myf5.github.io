@@ -35,7 +35,7 @@
 &lt;li>&lt;a href="https://github.com/zongzw">zongzw f5zong&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://github.com/Niklaus-xie">Niklaus-xie&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://github.com/myf5">myf5 Jing Lin&lt;/a>&lt;/li>
-&lt;/ul></description></item><item><title>Project- Container Egress Service(CES)</title><link>http://linjing.io/post/f5-container-egress-service-ces/</link><pubDate>Tue, 01 Feb 2022 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-container-egress-service-ces/</guid><description>&lt;h2 id="solution-architecture">Solution architecture&lt;/h2>
+&lt;/ul></description></item><item><title>NGINX Gateway API</title><link>http://linjing.io/talk/nginx-sprint-gateway-api/</link><pubDate>Thu, 01 Dec 2022 15:10:30 +0000</pubDate><guid>http://linjing.io/talk/nginx-sprint-gateway-api/</guid><description>&lt;!-- raw HTML omitted --></description></item><item><title>Project- Container Egress Service(CES)</title><link>http://linjing.io/post/f5-container-egress-service-ces/</link><pubDate>Tue, 01 Feb 2022 00:00:00 +0000</pubDate><guid>http://linjing.io/post/f5-container-egress-service-ces/</guid><description>&lt;h2 id="solution-architecture">Solution architecture&lt;/h2>
 &lt;h3 id="components">Components&lt;/h3>
 &lt;p>The CES solution includes the following components:&lt;/p>
 &lt;ul>
